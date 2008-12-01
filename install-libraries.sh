@@ -1,0 +1,1 @@
+sudo apt-get install libcvaux-dev libcv-dev libhighgui-dev libblitz0-dev
