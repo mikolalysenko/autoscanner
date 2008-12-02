@@ -8,6 +8,39 @@
 using namespace std;
 using namespace blitz;
 
+//Plane directions
+const vec3 
+DN[6] = {
+    vec3(0, 0, 1),
+    vec3(0, 0,-1),
+    vec3(1, 0, 0),
+    vec3(-1, 0, 0),
+    vec3(0, 1, 0),
+    vec3(0,-1, 0),
+},
+
+DU[6] = {
+    vec3(0, 1, 0),
+    vec3(0, 1, 0),
+    vec3(0, 1, 0),
+    vec3(0, 1, 0),
+    vec3(1, 0, 0),
+    vec3(1, 0, 0),    
+},
+
+DV[6] = {
+    vec3(1, 0, 0),
+    vec3(1, 0, 0),
+    vec3(0, 0, 1),
+    vec3(0, 0, 1),
+    vec3(0, 0, 1),
+    vec3(0, 0, 1),
+};
+
+const int N_DIM[6] = { 2, 2, 0, 0, 1, 1, },
+          U_DIM[6] = { 1, 1, 1, 1, 0, 0, },
+          V_DIM[6] = { 0, 0, 2, 2, 2, 2, };
+
 //A neighborhood within a view
 struct Neighborhood
 {
@@ -63,7 +96,8 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
 bool checkConsistency(
     std::vector<View*> views,
     Volume* volume,
-    ivec3 point)
+    ivec3 point,
+    int d)
 {
     //Create patches
     vector<Neighborhood> patches;
@@ -72,6 +106,24 @@ bool checkConsistency(
     
     vec3 pt = point;
     pt += 0.5;
+    
+    //Construct the cone
+    vec3 dn = DN[d], du = DU[d], dv = DV[d];
+    
+    vec4 cone[4];
+    cone[0] = cone[1] = cone[2] = cone[3] = vec4(dn(0), dn(1), dn(2), 0);
+    
+    cone[0] += vec4(du(0), du(1), du(2), 0);
+    cone[1] -= vec4(du(0), du(1), du(2), 0);
+    cone[2] += vec4(dv(0), dv(1), dv(2), 0);
+    cone[3] -= vec4(dv(0), dv(1), dv(2), 0);
+    
+    for(int i=0; i<4; i++)
+    {
+        cone[i](3) = -(cone[i](0) * pt(0) + 
+                       cone[i](1) * pt(1) +
+                       cone[i](2) * pt(2));
+    }
     
     for(size_t i=0; i<views.size(); i++)
     {
@@ -84,6 +136,29 @@ bool checkConsistency(
             continue;
         in_frame = true;
         
+        //Check that the point is in the cone
+        bool fail = false;
+        for(int j=0; j<4; j++)
+        {
+            double d = 
+                cone[j](0) * view->center(0) +
+                cone[j](1) * view->center(1) +
+                cone[j](2) * view->center(2) +
+                cone[j][3];
+            
+            if(d > 0.0f)
+            {
+                fail = true;
+                break;
+            }
+        }
+        if(fail)
+            continue;
+        
+        //If already consistent, then continue
+        if(view->consist(ix, iy))
+            continue;
+        
         /*
         //Visual hull hack
         vec3 pixel = view->readPixel(ix, iy);
@@ -91,38 +166,45 @@ bool checkConsistency(
             return false;
         */
         
-        //Do ray-volume intersection
-        vec3 tmp, dir = view->center;
-        dir -= pt;
-        dir /= sqrtf(dir(0) * dir(0) + dir(1) * dir(1) + dir(2) * dir(2));
-        if(volume->trace_ray(Ray(pt, dir), tmp))
-        {
-            continue;
-        }
-        
         //Accumulate statistics
         patches.push_back(Neighborhood(view, ix, iy));
     }
     
     //If not in frame, then voxel is trivially non-consistent
-    if(!in_frame)
+    if(!in_frame || !checkNeighborhood(patches))
         return false;
     
-    return checkNeighborhood(patches);
+    //Mark consistency
+    for(size_t i=0; i<patches.size(); i++)
+        patches[i].view->consist(patches[i].x, patches[i].y) = true;
+    
+    return true;
 } 
 
 //Sweeps a plane through volume
 bool planeSweep(
     std::vector<View*> views,
     Volume* volume,
-    ivec3 dn,
-    ivec3 du,
-    ivec3 dv,
-    ivec3 p,
-    int si, int sj, int sk)
+    int d,
+    ivec3 bound)
 {
     //Returns true when volume is photo consistent
     bool done = true;
+    
+    //Read in bounds on loops
+    int si = bound[N_DIM[d]],
+        sj = bound[U_DIM[d]],
+        sk = bound[V_DIM[d]];
+    
+    //Read in delta coordinates
+    vec3 dn = DN[d],
+         du = DU[d],
+         dv = DV[d];
+    
+    //Initialize p
+    vec3 p = 0.0f;
+    for(int i=0; i<3; i++)
+        p(i) = dn(i) < 0 ? bound[i] - 1 : 0;
     
     for(int i=0; i<si; i++)
     {
@@ -135,12 +217,13 @@ bool planeSweep(
             for(int k=0; k<sk; k++)
             {
                 if(volume->on_surface(r))
-                if(!checkConsistency(views, volume, r))
                 {
-                    (*volume)(r(0), r(1), r(2)) = 0;
-                    done = false;
+                    if(!checkConsistency(views, volume, r, d))
+                    {
+                        (*volume)(r(0), r(1), r(2)) = 0;
+                        done = false;
+                    }
                 }
-                
                 r += dv;
             }
             q += du;
@@ -167,50 +250,15 @@ Volume* findHull(
         (*volume)(i,j,k) = 255;
     
     
-    while(
-        planeSweep(views, volume, 
-            ivec3(0, 0, 1),
-            ivec3(0, 1, 0),
-            ivec3(1, 0, 0),
-            ivec3(0, 0, 0),
-            zr, yr, xr) ||
-    
-        planeSweep(views, volume, 
-            ivec3(0, 0,-1),
-            ivec3(0, 1, 0),
-            ivec3(1, 0, 0),
-            ivec3(0, 0, zr-1),
-            zr, yr, xr) ||
-            
-        planeSweep(views, volume, 
-            ivec3(1, 0, 0),
-            ivec3(0, 1, 0),
-            ivec3(0, 0, 1),
-            ivec3(0, 0, 0),
-            xr, yr, zr) ||
-
-        planeSweep(views, volume, 
-            ivec3(-1, 0, 0),
-            ivec3(0, 1, 0),
-            ivec3(0, 0, 1),
-            ivec3(xr-1, 0, 0),
-            xr, yr, zr) ||
-            
-        planeSweep(views, volume, 
-            ivec3(0, 1, 0),
-            ivec3(1, 0, 0),
-            ivec3(0, 0, 1),
-            ivec3(0, 0, 0),
-            yr, xr, zr) ||
-
-        planeSweep(views, volume, 
-            ivec3(0,-1, 0),
-            ivec3(1, 0, 0),
-            ivec3(0, 0, 1),
-            ivec3(0,yr-1, 0),
-            yr, xr, zr))
+    while(true)
     {
-        cout << "redo sweep" << endl;
+        //Clear consistency data
+        for(size_t i=0; i<views.size(); i++)
+            views[i]->resetConsist();
+        
+        //Do plane sweeps
+        for(int i=0; i<6; i++)
+            planeSweep(views, volume, i, ivec3(xr, yr, zr));
     }
     
     return volume;
