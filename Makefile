@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-SOURCES  = main.cpp volume.cpp view.cpp misc.cpp photohull.cpp
+SOURCES  = main.cpp volume.cpp view.cpp misc.cpp photohull.cpp volume_cuts.cpp
 DEPENDS  = $(SOURCES:.cpp=.d)
 OBJECTS  = $(SOURCES:.cpp=.o)
 TARGET	 = main
