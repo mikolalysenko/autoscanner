@@ -9,7 +9,7 @@
 using namespace std;
 using namespace blitz;
 
-
+//Does some thresholding on the input image
 void threshold(IplImage * img)
 {
     //Threshold image
@@ -34,8 +34,8 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
 {
     assert(img != NULL);
     
-    //Apply filters
-	threshold(pic);
+    //Apply filters (this is very tweaky)
+    threshold(pic);
     img = cvCreateImage(cvSize(pic->width, pic->height), IPL_DEPTH_8U, 3);
     cvSmooth(pic, img, CV_GAUSSIAN, 3, 3, 1.5);
     
@@ -46,18 +46,13 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     //Compute optical center
     center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
 
+    //Debug spam
     cout << "Camera: " << cam << endl
          << "K = " << K << endl
          << "R = " << R << endl
          << "S = " << S << endl
          << "CamInv: " << cam_inv << endl
          << "Center = " << center << endl;
-    
-    cout << "BoxCenter = " << 
-        hgmult(inverse(S), vec3(0,0,0)) << endl;
-    
-    
-
 }
 
 //Read a pixel from the view
@@ -72,48 +67,6 @@ vec3 View::readPixel(int ix, int iy) const
     
     //Convert pixel coordinates
     return vec3(ptr[0], ptr[1], ptr[2]);
-}
-
-//Pixel reading code
-bool View::readFiltered(const vec3& point, vec3& color) const
-{
-    //Read in homogeneous coordinates
-    vec3 img_loc = hgmult(cam, point);
-    
-    //Get integer part of pixel coordinates
-    int ix = img_loc(0), iy = img_loc(1);
-    
-    /*
-    cout << "pix: " << ix << "," << iy << endl;
-    cout << "dim: " << img->width << "," << img->height << endl;
-    */
-    
-    //Do bounds check
-    if(ix < 0 || ix >= img->width || iy < 0 || iy >= img->height)
-        return false;
-
-    //Compute average color
-    color = vec3(0, 0, 0);
-    
-    for(float dx=-0.5; dx<=0.5; dx+=0.25)
-    for(float dy=-0.5; dy<=0.5; dy+=0.25)
-    for(float dz=-0.5; dz<=0.5; dz+=0.25)
-    {
-        vec3 npoint = vec3(
-            point(0) + dx,
-            point(1) + dy,
-            point(2) + dz);
-        
-        img_loc = hgmult(cam, npoint);
-        
-        vec3 pix = readPixel(img_loc(0), img_loc(1));
-        
-        pix /= 125.0f;
-        
-        color += pix;
-    }
-    
-    return true;
 }
 
 

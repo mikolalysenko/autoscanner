@@ -4,10 +4,6 @@
 #include <vector>
 #include "misc.h"
 
-#define RES_R   3   
-#define RES_G   3
-#define RES_B   3
-
 //A camera view
 struct View
 {
@@ -25,9 +21,7 @@ struct View
     
     //Reads
     vec3 readPixel(int ix, int iy) const;
-    bool readFiltered(const vec3& point, vec3& color) const;
 };
-
 
 //Loads a view set from file (using Stanford format)
 std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box);
