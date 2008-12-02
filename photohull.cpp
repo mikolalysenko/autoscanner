@@ -125,6 +125,7 @@ bool checkConsistency(
                        cone[i](2) * pt(2));
     }
     
+    //Traverse all views
     for(size_t i=0; i<views.size(); i++)
     {
         View * view = views[i];
@@ -177,6 +178,12 @@ bool checkConsistency(
     //Mark consistency
     for(size_t i=0; i<patches.size(); i++)
         patches[i].view->consist(patches[i].x, patches[i].y) = true;
+    
+    //Mark checked
+    if(patches.size() > 0)
+    {
+        (*volume)(point(0), point(1), point(2)) &= ~(1 << d);
+    }
     
     return true;
 } 
@@ -259,6 +266,16 @@ Volume* findHull(
         //Do plane sweeps
         for(int i=0; i<6; i++)
             planeSweep(views, volume, i, ivec3(xr, yr, zr));
+        
+        //Mark the pixels from multiview volumes
+        //Unimplemented
+        
+        //Reset volumes
+        for(int i=0; i<xr; i++)
+        for(int j=0; j<yr; j++)
+        for(int k=0; k<zr; k++)
+            if((*volume)(i,j,k))
+                (*volume)(i,j,k) = 255; 
     }
     
     return volume;
