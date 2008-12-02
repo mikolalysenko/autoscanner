@@ -39,6 +39,9 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     img = cvCreateImage(cvSize(pic->width, pic->height), IPL_DEPTH_8U, 3);
     cvSmooth(pic, img, CV_GAUSSIAN, 3, 3, 1.5);
     
+    //Create data
+    consist_data = (char*)malloc(img->width * img->height);
+    
     //Calculate camera matrices
     cam = mmult(K, mmult(R, S));
     cam_inv = inverse(cam);
