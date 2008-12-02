@@ -184,9 +184,9 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
 	//cout << "sigma = " << sigma << endl;
 	
 	return 
-		(sigma(0) < 20) &&
-		(sigma(1) < 25) &&
-		(sigma(2) < 40);
+		(sigma(0) < 15) &&
+		(sigma(1) < 15) &&
+		(sigma(2) < 20);
 }
 
 //Checks photoconsistency of a voxel in the volume
