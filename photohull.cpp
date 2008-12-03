@@ -112,8 +112,8 @@ struct Neighborhood
 bool checkNeighborhood(vector<Neighborhood> &patches)
 {
     //No patches, no match
-    if(patches.size() <= 1)
-        return true;
+    if(patches.size() < 1)
+        return true;
     
     vec3 mu0 = 0.0f, mu1 = 0.0f;
     
@@ -127,6 +127,15 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
         pixel *= pixel;
         mu1 += pixel;
     }
+    
+    vec3 mu2 = mu0; 
+    mu2 /= (float)patches.size();
+
+    if (mu2(0) + mu2(1) + mu2(2) < 1) return false;
+
+    //No patches, no match
+    if(patches.size() <= 1)
+        return true;
 
     //Calculate sigma
     mu0 *= mu0;
@@ -140,10 +149,10 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
         sqrtf(mu1(2))); */
     vec3 sigma = mu1;
     //These values are arbitrary
-    return 
-            (sigma(0) < 200) &&
-            (sigma(1) < 200) &&
-            (sigma(2) < 200);
+    return  true ||
+            (sigma(0) < 12000) &&
+            (sigma(1) < 12000) &&
+            (sigma(2) < 12000);
 }
 
 //Checks photoconsistency of a voxel in the volume
@@ -216,19 +225,19 @@ bool checkConsistency(
         if(view->consist(ix, iy))
             continue;
         
-        /*
+
         //Visual hull hack
         vec3 pixel = view->readPixel(ix, iy);
         if(0.3 * pixel(0) + 0.59 * pixel(1) + 0.11 * pixel(2) < 30)
             return false;
-        */
+        
         
         //Accumulate statistics
         patches.push_back(Neighborhood(view, ix, iy));
     }
     
     //If not in frame, then voxel is trivially non-consistent
-    if(!in_frame || !checkNeighborhood(patches))
+    if(/*!in_frame ||*/false && !checkNeighborhood(patches))
         return false;
     
     //Mark consistency
@@ -305,9 +314,10 @@ bool planeSweep(
 //Finds the photo hull
 Volume* findHull(
     std::vector<View*> views, 
-    int xr, int yr, int zr)
+    int xr, int yr, int zr,
+    vec3 low, vec3 high)
 {
-    Volume * volume = new Volume((size_t)xr, (size_t)yr, (size_t)zr);
+    Volume * volume = new Volume((size_t)xr, (size_t)yr, (size_t)zr, low, high);
     
     for(int i=0; i<xr; i++)
     for(int j=0; j<yr; j++)

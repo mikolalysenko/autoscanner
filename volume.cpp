@@ -16,8 +16,8 @@ using namespace std;
 using namespace blitz;
 
 //Volume constructor
-Volume::Volume(size_t x, size_t y, size_t z) :
-    xRes(x), yRes(y), zRes(z)
+Volume::Volume(size_t x, size_t y, size_t z, vec3 l, vec3 h) :
+    xRes(x), yRes(y), zRes(z), low(l), high(h)
 {
     data = new unsigned char[xRes * yRes * zRes];
     memset(data, 0, xRes * yRes * zRes);
@@ -75,8 +75,10 @@ void Volume::savePly(const std::string& file) const {
     for (int x = 0; x < xRes; x++)
     for (int y = 0; y < yRes; y++)
     for (int z = 0; z < zRes; z++) {
-        if (on_surface(x, y, z) != 0)
-            fout << x << " " << y << " " << z << endl;
+        if (on_surface(x, y, z) != 0) {
+            vec3 pos = pos_3d(x,y,z);
+            fout << pos(0) << " " << pos(1) << " " << pos(2) << endl;
+        }
     }
 
     fout.flush();
@@ -143,4 +145,10 @@ bool Volume::on_surface(int ix, int iy, int iz) const {
         (*this)(ix, iy-1, iz) &&
         (*this)(ix, iy, iz+1) &&
         (*this)(ix, iy, iz-1));
+}
+
+vec3 Volume::pos_3d(int x, int y, int z) const {
+    return vec3(((float)x / xRes * (high(0) - low(0))),
+                ((float)y / yRes * (high(1) - low(1))),
+                ((float)z / zRes * (high(2) - low(2))));
 }
