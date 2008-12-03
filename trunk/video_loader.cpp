@@ -19,7 +19,7 @@ const char* bundler_path = "bundler/RunBundler.sh";
 //Camera produced by bundler
 struct BundlerCamera
 {
-    mat44 world;
+    mat44 R;
     float f, k1, k2;
 };
 
@@ -61,8 +61,8 @@ vector<BundlerCamera> runBundler(
     string options_path = temp_directory + "/options.txt";
     
     //Open list/options file
-    ofstream f_list     = ofstream(list_path.c_str()),
-             f_options  = ofstream(options_path.c_str());
+    ofstream f_list(list_path.c_str()),
+             f_options(options_path.c_str());
     
     
     //Write frames to file
@@ -79,12 +79,16 @@ vector<BundlerCamera> runBundler(
     string bundler_command = string(bundler_path) + " " + list_path + " --options_file " + options_path;
     system(bundler_command.c_str());
     
-    //Process results
+    //Read in data
+    vector<BundlerCamera> result;
+    
+
+    return result;
 }
 
 
 //Undistorts image from k1 - k2
-IplImage unwarp(IplImage * img, float k1, float k2)
+IplImage * unwarp(IplImage * img, float k1, float k2)
 {
     return img;
 }
@@ -97,17 +101,22 @@ vector<View*> loadVideo(const char * filename, ivec3 grid_dim)
     CvCapture * capture = cvCaptureFromAVI(filename);
     assert(capture);
     vector<IplImage*> frames = splitVideo(capture);
-    cvReleaseCapture(capture);
+    cvReleaseCapture(&capture);
     
     //Run bundler on frames to obtain matrices & camera parameters
     vec3 box_min, box_max;
     vector<BundlerCamera> cameras = runBundler(frames, box_min, box_max);
     
     //Construct grid -> box matrix
-    mat44 S = 0.0f;
-    for(i=0; i<2; i++)
+    mat44 S;
+    
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+        S(i,j) = 0.0f;
+    
+    for(int i=0; i<2; i++)
     {
-        S(i,i) = (box_max - box_min) / (float)grid_dim(i);
+        S(i,i) = (box_max(i) - box_min(i)) / (float)grid_dim(i);
         S(i,3) = box_min(i);
     }
     S(3,3) = 1.0f;
@@ -118,14 +127,20 @@ vector<View*> loadVideo(const char * filename, ivec3 grid_dim)
     for(size_t n=0; n<frames.size(); n++)
     {
         //Compute intrinsic matrix K
-        mat44 K = 0.0f;
+        mat44 K;
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+            K(i,j) = 0.0f;
         for(int i=0; i<3; i++)
             K(i,i) = 1.0f;
         K(0,3) = frames[n]->width/2.0f;
         K(1,3) = frames[n]->height/2.0f;
         
         //Construct perspective warping matrix
-        mat44 P = 0.0f;
+        mat44 P;
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+            P(i,j) = 0.0f;
         for(int i=0; i<4; i++)
             P(i,i) = 1.0f;
         P(3,3) = -1.0f;

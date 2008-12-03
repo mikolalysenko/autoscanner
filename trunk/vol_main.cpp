@@ -28,7 +28,8 @@ int main(int argc, char** argv)
 	vector<View*> views = loadViews("templeSparseRing/templeSR_par.txt", 
 		vec3(-0.12f, -0.1f, -0.04f), 
 		vec3( 0.13f, 0.36f,  0.1f),
-		ivec3(SIZE, SIZE, SIZE));
+		ivec3(SIZE, SIZE, SIZE),
+                100.0f);
 
 /*
 	vector<View*> views = loadViews("temple/temple_par.txt", 

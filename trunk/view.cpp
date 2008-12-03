@@ -144,8 +144,10 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, floa
         flip(0,3) = img->width;
         */
         
+        /*
         flip(1,1) = -1.0f;
         flip(1,3) = img->height;
+        */
         
         K = mmult(flip, K);
         
