@@ -4,6 +4,18 @@
 
 using namespace std;
 
+char * getTempDirectory()
+{
+    if(getenv("TMPDIR"))
+        return getenv("TMPDIR");
+    if(getenv("TEMP"))
+        return getenv("TEMP");
+    if(getenv("TMP"))
+        return getenv("TMP");
+    return "/tmp/";
+}
+
+
 mat44 adjoint(const mat44& m)
 {
     mat44 r;
