@@ -47,6 +47,14 @@ struct Ray
         o = r.o; d = r.d;
         return *this;
     }
+    
+    vec3 operator()(float t) const
+    {
+        vec3 r = d;
+        r *= t;
+        r += o;
+        return r;
+    }
 };
 
 //Matrix arithmetic
