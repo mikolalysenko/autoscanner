@@ -51,10 +51,17 @@ void Volume::save(const char * file) const
 
 void Volume::savePly(const std::string& file) const {
     int num_vertices = 0;
-    for (int i = 0; i < xRes * yRes * zRes; i++)
-        num_vertices += data[i] != 0;
+    for (int x = 0; x < xRes; x++)
+    for (int y = 0; y < yRes; y++)
+    for (int z = 0; z < zRes; z++)
+        num_vertices += on_surface(x, y, z);
 
-    ofstream fout((file + "-o.ply").c_str());
+    ifstream fin((file + "-o.ply").c_str());
+    ofstream fbout((file + "-o2.ply").c_str(), ios_base::out | ios_base::trunc);
+
+    fbout << fin.rdbuf() << endl;
+
+    ofstream fout((file + "-o.ply").c_str(), ios_base::out | ios_base::trunc);
 
     fout << "ply" << endl;
     fout << "format ascii 1.0" << endl;
@@ -68,9 +75,11 @@ void Volume::savePly(const std::string& file) const {
     for (int x = 0; x < xRes; x++)
     for (int y = 0; y < yRes; y++)
     for (int z = 0; z < zRes; z++) {
-        if ((*this)(x, y, z) != 0)
+        if (on_surface(x, y, z) != 0)
             fout << x << " " << y << " " << z << endl;
     }
+
+    fout.flush();
     
 }
 
@@ -123,6 +132,10 @@ bool Volume::on_surface(const ivec3& x) const
         iy = x(1),
         iz = x(2);
     
+    return on_surface(ix, iy, iz);
+}
+
+bool Volume::on_surface(int ix, int iy, int iz) const {    
     return (*this)(ix, iy, iz) && !(
         (*this)(ix+1, iy, iz) &&
         (*this)(ix-1, iy, iz) &&
