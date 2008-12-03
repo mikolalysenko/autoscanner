@@ -16,14 +16,13 @@
 #include "view.h"
 #include "volume.h"
 #include "volume_cuts.h"
+#include "photohull.h"
 
 using namespace std;
 using namespace blitz;
 using namespace boost;
 
-//Includes from photohull
-extern const vec3 DN[6], DU[6], DV[6];
-extern const int N_DIM[6], U_DIM[6], V_DIM[6];
+
 
 //Lambda coefficient
 #define LAMBDA          0.1f
@@ -69,6 +68,7 @@ float evaluatePhotoConsistency(vector<View*> views, vec3 p, Volume * hull)
     return 1.0f;
 }
 
+//Adds the edge to the volume graph
 void addEdge(int start, int end, float w)
 {
     Traits::vertex_descriptor u, v;
@@ -98,43 +98,32 @@ void addEdge(int start, int end, float w)
     rev[e2] = e1;
     rev[e1] = e1;
 }
-    
 
 
 //Perform volumetric graph cuts
 Volume* volumetricGraphCuts(
     std::vector<View*> views,
-    vec3 box_min,
-    vec3 box_max,
-    ivec3 grid_res,
-    vec3 interior_point,
+    vec3 interior_grid,
     Volume * photo_hull)
 {
-    //Compute grid cell dimensions
-    vec3 h = box_max;
-    h -= box_min;
-    h /= grid_res;
-
-    
     //Set grid dimensions
-    grid_dim = grid_res;
+    grid_dim = ivec3(
+        photo_hull->xRes, 
+        photo_hull->yRes, 
+        photo_hull->zRes);
 
     //Allocate graph
     g = new Graph(grid_dim(0) * grid_dim(1) * grid_dim(2) + 1);
     
     //Find source
-    ivec3 interior_grid;
-    for(int i=0; i<3; i++)
-    {
-        interior_grid(i) = 
-            grid_res(i) * (interior_point(i) - box_min(i)) / (box_max(i) - box_min(i));
-    }
     sourceNode = getNode(interior_grid(0), interior_grid(1), interior_grid(2));
     
     //Find sink
     sinkNode = -1;
     
+    
     //Build graph
+    cout << "Building graph..." << endl;
     for(int i=0; i<grid_dim(0); i++)
     for(int j=0; j<grid_dim(1); j++)
     for(int k=0; k<grid_dim(2); k++)
@@ -160,10 +149,9 @@ Volume* volumetricGraphCuts(
             pt += vec3(i,j,k);
             
             float rho = evaluatePhotoConsistency(views, pt, photo_hull);
+            float weight = 4.0f / 3.0f * M_PI * rho;
             
             int u = getNode(i+DN[d](0), j+DN[d](1), k+DN[d](2));
-            
-            float weight = 4.0f / 3.0f * M_PI * h(U_DIM[d]) * h(V_DIM[d]) * rho;
             addEdge(v, u, weight);
         }
         
@@ -171,7 +159,7 @@ Volume* volumetricGraphCuts(
         //Add inflation term
         if(v != sourceNode)
         {
-            float w_b = LAMBDA * h(0) * h(1) * h(2);
+            float w_b = LAMBDA;
             addEdge(v, sourceNode, w_b);
         }
     }
@@ -183,6 +171,7 @@ Volume* volumetricGraphCuts(
     vector<Traits::edge_descriptor> pred(num_vertices(*g));
     
     //Do min-cuts on graph to get result
+    cout << "Running network flow" << endl;
     edmunds_karp_max_flow(
         *g, 
         sourceNode, 
@@ -192,7 +181,6 @@ Volume* volumetricGraphCuts(
         rev,
         result->data,
         &pred[0]);
-    
     
     //Release graph
     delete g;

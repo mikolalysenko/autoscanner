@@ -4,10 +4,13 @@
 #
 ###############################################################################
 
-SOURCES  = main.cpp volume.cpp view.cpp misc.cpp photohull.cpp volume_cuts.cpp
+SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp volume_cuts.cpp
+
 DEPENDS  = $(SOURCES:.cpp=.d)
 OBJECTS  = $(SOURCES:.cpp=.o)
 TARGET	 = main
+VOLTARGET= volmain
+
 
 ###############################################################################
 
@@ -22,12 +25,17 @@ LDFLAGS = -lcv -lcvaux -lhighgui -lm
 
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) $(LDFLAGS) -o $@
+vol: $(VOLTARGET)
+
+$(TARGET): $(OBJECTS) main.o
+	$(CC) $(CFLAGS) main.o $(OBJECTS) $(LDFLAGS) -o $@
+
+$(VOLTARGET): $(OBJECTS) vol_main.o
+	$(CC) $(CFLAGS) vol_main.o $(OBJECTS) $(LDFLAGS) -o $@
 
 clean:
 	$(RM) $(OBJECTS) $(DEPENDS)
-	$(RM) $(TARGET)
+	$(RM) $(TARGET) $(VOLTARGET)
 
 .PHONY: all clean
 
