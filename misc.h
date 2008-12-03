@@ -57,6 +57,7 @@ struct Ray
     }
 };
 
+
 //Matrix arithmetic
 extern mat44 adjoint(const mat44& m);
 extern float det(const mat44& m);
@@ -65,5 +66,9 @@ extern mat44 transpose(const mat44& m);
 extern mat44 mmult(const mat44& a, const mat44& b);
 extern vec3 hgmult(const mat44& a, const vec3& b);
 extern vec4 vmult(const mat44& a, const vec4& b);
+
+//Retrieves temporary directory
+extern char * getTempDirectory();
+
 
 #endif
