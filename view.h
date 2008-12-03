@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
+#include <string>
 #include "misc.h"
 
 //A camera view
@@ -42,6 +43,8 @@ struct View
     
     //Resets the consistency data
     void resetConsist() { std::fill(consist_data, consist_data + img->width * img->height, 0); }
+
+    void writeConsist(const std::string& filename);
 };
 
 //Loads a view set from file (using Stanford format)
