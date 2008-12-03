@@ -131,3 +131,17 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
     
     return result;
 }
+
+void View::writeConsist(const std::string& filename) {
+    IplImage * consistImg = cvCreateImageHeader(cvSize(img->width, img->height), IPL_DEPTH_8U, 1);
+    consistImg->widthStep = img->width;
+    cout << filename << endl;
+    //Set data pointer
+    consistImg->imageData = (char*)consist_data;
+        
+    //Save image
+    cvSaveImage(filename.c_str(), consistImg);
+
+    cvReleaseImageHeader(&consistImg);
+
+}
