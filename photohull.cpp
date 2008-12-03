@@ -2,6 +2,8 @@
 #include <cmath>
 #include <utility>
 #include <vector>
+#include <algorithm>
+#include <string>
 
 #include "photohull.h"
 
@@ -37,9 +39,61 @@ DV[6] = {
     vec3(0, 0, 1),
 };
 
+
+
 const int N_DIM[6] = { 2, 2, 0, 0, 1, 1, },
           U_DIM[6] = { 1, 1, 1, 1, 0, 0, },
           V_DIM[6] = { 0, 0, 2, 2, 2, 2, };
+
+struct VoxelProjection
+{
+    View* view;
+    double verts[2][8];
+    int x_min, x_max, y_min, y_max;
+
+    static void clamp(int& v, int min, int max) {
+        v = v < min ? min : v > max ? max : v;
+    }
+
+    VoxelProjection(View* v, vec3 pt) : view(v) {
+        vec3 offset[8] = {
+            vec3(0, 0, 0),
+            vec3(1, 0, 0),
+            vec3(0, 1, 0),
+            vec3(0, 0, 1),
+            vec3(0, 1, 1),
+            vec3(1, 0, 1),
+            vec3(1, 1, 0),
+            vec3(1, 1, 1)
+            };
+        for (int i = 0; i < 8; i++) {
+            vec3 v = pt; v += offset[i];
+            vec3 proj = hgmult(view->cam, v);
+            verts[0][i] = proj(0); verts[1][i] = proj(1);
+        }
+        x_min = * min_element(verts[0], verts[0] + 8);
+        y_min = * min_element(verts[1], verts[1] + 8);
+        x_max = * max_element(verts[0], verts[0] + 8);
+        y_max = * max_element(verts[1], verts[1] + 8);
+        assert(x_min <= x_max);
+        assert(y_min <= y_max);
+        clamp(x_min, 0, view->img->width - 1); clamp(x_max, 0, view->img->width - 1);
+        clamp(y_min, 0, view->img->height - 1); clamp(y_max, 0, view->img->height - 1);
+    }
+	
+    pair<int, int> begin() const {
+        return pair<int, int>(x_min, y_min);
+    }
+    pair<int, int> end() const {
+        return pair<int, int>(x_min, y_max + 1);
+    }
+    void next(pair<int, int>& p) const {
+        if (p.first == x_max) 
+            { p.first = x_min; p.second++; }
+        else
+            p.first++;
+    }
+};
 
 //A neighborhood within a view
 struct Neighborhood
@@ -87,9 +141,9 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     
     //These values are arbitrary
     return 
-            (sigma(0) < 15) &&
-            (sigma(1) < 15) &&
-            (sigma(2) < 20);
+            (sigma(0) < 8) &&
+            (sigma(1) < 12) &&
+            (sigma(2) < 16);
 }
 
 //Checks photoconsistency of a voxel in the volume
@@ -124,6 +178,8 @@ bool checkConsistency(
                        cone[i](1) * pt(1) +
                        cone[i](2) * pt(2));
     }
+
+    
     
     //Traverse all views
     for(size_t i=0; i<views.size(); i++)
@@ -176,8 +232,12 @@ bool checkConsistency(
         return false;
     
     //Mark consistency
-    for(size_t i=0; i<patches.size(); i++)
-        patches[i].view->consist(patches[i].x, patches[i].y) = true;
+    for(size_t i=0; i<patches.size(); i++) {
+        VoxelProjection vp(patches[i].view, point);
+        for (pair<int, int> iter = vp.begin(); iter != vp.end(); vp.next(iter))
+            patches[i].view->consist(iter.first, iter.second) = 255;
+    }
+
     
     //Mark checked
     if(patches.size() > 0)
@@ -260,8 +320,11 @@ Volume* findHull(
     while(true)
     {
         //Clear consistency data
-        for(size_t i=0; i<views.size(); i++)
+        for(size_t i=0; i<views.size(); i++) {
+            string fname = "temp/consist"; fname += '0' + i; fname += ".png";
+            views[i]->writeConsist(fname);
             views[i]->resetConsist();
+        }
         
         //Do plane sweeps
         for(int i=0; i<6; i++)
