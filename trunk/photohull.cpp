@@ -45,6 +45,42 @@ const int N_DIM[6] = { 2, 2, 0, 0, 1, 1, },
           U_DIM[6] = { 1, 1, 1, 1, 0, 0, },
           V_DIM[6] = { 0, 0, 2, 2, 2, 2, };
 
+struct Cone
+{
+    vec4 cone[4];
+
+    Cone(vec3 dn, vec3 du, vec3 dv, vec3 pt) {
+        cone[0] = cone[1] = cone[2] = cone[3] = vec4(dn(0), dn(1), dn(2), 0);
+        
+        cone[0] += vec4(du(0), du(1), du(2), 0);
+        cone[1] -= vec4(du(0), du(1), du(2), 0);
+        cone[2] += vec4(dv(0), dv(1), dv(2), 0);
+        cone[3] -= vec4(dv(0), dv(1), dv(2), 0);
+        
+        for(int i=0; i<4; i++)
+        {
+            cone[i](3) = -(cone[i](0) * pt(0) + 
+                           cone[i](1) * pt(1) +
+                           cone[i](2) * pt(2));
+        }
+    }
+
+    bool contains(vec3 pt) {
+        for(int j=0; j<4; j++)
+        {
+            double d = 
+                cone[j](0) * pt(0) +
+                cone[j](1) * pt(1) +
+                cone[j](2) * pt(2) +
+                cone[j][3];
+            
+            if(d > 0.0f)
+                return false;
+        }
+    }
+
+};
+
 struct VoxelProjection
 {
     View* view;
@@ -111,11 +147,9 @@ struct Neighborhood
 // This clearly does not work.
 bool checkNeighborhood(vector<Neighborhood> &patches)
 {
-    return true;
     //No patches, no match
     if(patches.size() < 1)
         return true;
-    
     vec3 mu0 = 0.0f, mu1 = 0.0f;
     
     for(size_t i=0; i<patches.size(); i++)
@@ -132,7 +166,7 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     vec3 mu2 = mu0; 
     mu2 /= (float)patches.size();
 
-    if (mu2(0) + mu2(1) + mu2(2) < 1) return false;
+    //if (patches.size() == 1 && mu2(0) + mu2(1) + mu2(2) < 40) return false;
 
     //No patches, no match
     if(patches.size() <= 1)
@@ -150,9 +184,9 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
         sqrtf(mu1(2))); */
     vec3 sigma = mu1;
     //These values are arbitrary
-    return  (sigma(0) < 12000) &&
-            (sigma(1) < 12000) &&
-            (sigma(2) < 12000);
+    return  (sigma(0) < 4000) &&
+            (sigma(1) < 8000) &&
+            (sigma(2) < 16000);
 }
 
 //Checks photoconsistency of a voxel in the volume
@@ -173,20 +207,7 @@ bool checkConsistency(
     //Construct the cone
     vec3 dn = DN[d], du = DU[d], dv = DV[d];
     
-    vec4 cone[4];
-    cone[0] = cone[1] = cone[2] = cone[3] = vec4(dn(0), dn(1), dn(2), 0);
-    
-    cone[0] += vec4(du(0), du(1), du(2), 0);
-    cone[1] -= vec4(du(0), du(1), du(2), 0);
-    cone[2] += vec4(dv(0), dv(1), dv(2), 0);
-    cone[3] -= vec4(dv(0), dv(1), dv(2), 0);
-    
-    for(int i=0; i<4; i++)
-    {
-        cone[i](3) = -(cone[i](0) * pt(0) + 
-                       cone[i](1) * pt(1) +
-                       cone[i](2) * pt(2));
-    }
+    Cone cone(dn, du, dv, pt);
     
     //Traverse all views
     for(size_t i=0; i<views.size(); i++)
@@ -200,34 +221,19 @@ bool checkConsistency(
             continue;
         in_frame = true;
         
-        //Check that the point is in the cone
-        bool fail = false;
-        for(int j=0; j<4; j++)
-        {
-            double d = 
-                cone[j](0) * view->center(0) +
-                cone[j](1) * view->center(1) +
-                cone[j](2) * view->center(2) +
-                cone[j][3];
-            
-            if(d > 0.0f)
-            {
-                fail = true;
-                break;
-            }
-        }
+        //Check that the point is in the cone        
 
-        //if(fail)
+        //if(!cone.contains(view->center))
         //    continue;
         
         //If already consistent, then continue
-        //if(view->consist(ix, iy))
-        //    continue;
+        if(view->consist(ix, iy))
+            continue;
         
 
         //Visual hull hack
         vec3 pixel = view->readPixel(ix, iy);
-        if(0.3 * pixel(0) + 0.59 * pixel(1) + 0.11 * pixel(2) < 30)
+        if(0.3 * pixel(0) + 0.59 * pixel(1) + 0.11 * pixel(2) < 2)
             return false;
         
         //Accumulate statistics
@@ -235,8 +241,8 @@ bool checkConsistency(
     }
     
     //If not in frame, then voxel is trivially non-consistent
-    //if(!in_frame && !checkNeighborhood(patches))
-    //    return true || false;
+    if(!in_frame || !checkNeighborhood(patches))
+        return false;
     
     //Mark consistency
     for(size_t i=0; i<patches.size(); i++) {
