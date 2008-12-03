@@ -9,6 +9,7 @@
 //Boost stuff
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/edmunds_karp_max_flow.hpp>
+#include <boost/graph/graphviz.hpp>
 #include <boost/tuple/tuple.hpp>
 
 //Project
@@ -23,16 +24,17 @@ using namespace blitz;
 using namespace boost;
 
 
-
 //Lambda coefficient
 #define LAMBDA          0.1f
-#define INF             1.0e20f
+#define INF             (1LL<<62LL)
+#define PREC            20LL
+
 
 //Aliases for boost graph data type
 typedef adjacency_list_traits < vecS, vecS, directedS > Traits;
 typedef adjacency_list < vecS, vecS, directedS, no_property,
-    property < edge_capacity_t, float,
-    property < edge_residual_capacity_t, float,
+    property < edge_capacity_t, long long,
+    property < edge_residual_capacity_t, long long,
     property < edge_reverse_t, Traits::edge_descriptor > > > > Graph;
 
 
@@ -68,8 +70,8 @@ float evaluatePhotoConsistency(vector<View*> views, vec3 p, Volume * hull)
     return 1.0f;
 }
 
-//Adds the edge to the volume graph
-void addEdge(int start, int end, float w)
+//Adds the edge to the volume graph (shouldn't this be shorter in boost?)
+void addEdge(int start, int end, double w)
 {
     Traits::vertex_descriptor u, v;
     u = vertex(start, *g);
@@ -91,10 +93,11 @@ void addEdge(int start, int end, float w)
     tie(e2, found) = edge(v, u, *g);
     
     //Set properties
-    capacity[e1] = w;
-    capacity[e2] = w;
-    residual_capacity[e1] = w;
-    residual_capacity[e2] = w;
+    long long wl = w * (double)(1LL<<PREC);
+    capacity[e1] = wl;
+    capacity[e2] = wl;
+    residual_capacity[e1] = wl;
+    residual_capacity[e2] = wl;
     rev[e2] = e1;
     rev[e1] = e1;
 }
@@ -148,9 +151,8 @@ Volume* volumetricGraphCuts(
             pt *= 0.5;
             pt += vec3(i,j,k);
             
-            float rho = evaluatePhotoConsistency(views, pt, photo_hull);
-            float weight = 4.0f / 3.0f * M_PI * rho;
-            
+            double rho = evaluatePhotoConsistency(views, pt, photo_hull);
+            double weight = 4.0f / 3.0f * M_PI * rho;
             int u = getNode(i+DN[d](0), j+DN[d](1), k+DN[d](2));
             addEdge(v, u, weight);
         }
@@ -170,6 +172,8 @@ Volume* volumetricGraphCuts(
     //Allocate predecessor list
     vector<Traits::edge_descriptor> pred(num_vertices(*g));
     
+    //write_graphviz(cout, *g);
+    
     //Do min-cuts on graph to get result
     cout << "Running network flow" << endl;
     edmunds_karp_max_flow(
@@ -182,8 +186,19 @@ Volume* volumetricGraphCuts(
         result->data,
         &pred[0]);
     
+    cout << "done." << endl;
+    
     //Release graph
     delete g;
+    
+    //Rescale
+    for(size_t i=0; i<result->xRes; i++)
+    for(size_t j=0; j<result->xRes; j++)
+    for(size_t k=0; k<result->xRes; k++)
+    {
+        if((*result)(i,j,k))
+            (*result)(i,j,k) = 255;
+    }
     
     //Return result
     return result;
