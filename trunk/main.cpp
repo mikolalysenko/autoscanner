@@ -16,7 +16,7 @@
 //Namespace aliasing
 using namespace std;
 
-#define SIZE 	128
+#define SIZE 	160
 
 //Program start point
 int main(int argc, char** argv)
@@ -24,9 +24,12 @@ int main(int argc, char** argv)
 	//Read in some views
 	cout << "reading in files" << endl;
 
+    vec3 low(-0.12f, -0.1f, -0.04f), 
+		high( 0.13f, 0.36f,  0.1f);
+
 	vector<View*> views = loadViews("temple/templeSR_par.txt", 
-		vec3(-0.12f, -0.1f, -0.04f), 
-		vec3( 0.13f, 0.36f,  0.1f),
+		low,
+        high,
 		ivec3(SIZE, SIZE, SIZE));
 
 /*
@@ -56,7 +59,7 @@ int main(int argc, char** argv)
 	*/
 	
 	cout << "Finding photo hull" << endl;
-	Volume * volume = findHull(views, SIZE, SIZE, SIZE);
+	Volume * volume = findHull(views, SIZE, SIZE, SIZE, low, high);
 	
 	cout << "Saving..." << endl;
 	volume->save("test/test");

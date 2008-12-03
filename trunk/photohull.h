@@ -14,6 +14,7 @@ extern const int N_DIM[], U_DIM[], V_DIM[];
 //Computes the photohull within a volume
 extern Volume* findHull(
     std::vector<View*> views, 
-    int xr, int yr, int zr);
+    int xr, int yr, int zr,
+    vec3 low, vec3 high);
 
 #endif

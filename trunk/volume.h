@@ -6,15 +6,19 @@
 
 #include "misc.h"
 
+using namespace blitz;
+
 
 //Voxel data structure
 struct Volume
 {
     unsigned char * data;
     size_t xRes, yRes, zRes;
+
+    vec3 low, high;
     
     //Creates an empty volume
-    Volume(size_t xr, size_t yr, size_t zr);
+    Volume(size_t xr, size_t yr, size_t zr, vec3 l = vec3(0,0,0), vec3 h = vec3(1,1,1));
     
     //Saves a volume
     void save(const char* filenae) const;
@@ -41,6 +45,9 @@ struct Volume
     //Check if a point is on the surface
     bool on_surface(const ivec3& x) const;
     bool on_surface(int x, int y, int z) const;
+
+    //Get 3d position of a voxel
+    vec3 pos_3d(int x, int y, int z) const;
 };
 
 #endif
