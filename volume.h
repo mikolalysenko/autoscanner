@@ -40,6 +40,7 @@ struct Volume
     
     //Check if a point is on the surface
     bool on_surface(const ivec3& x) const;
+    bool on_surface(int x, int y, int z) const;
 };
 
 #endif

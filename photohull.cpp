@@ -134,16 +134,16 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     mu1 -= mu0;
     mu1 /= (float)(patches.size() - 1);
     
-    vec3 sigma = vec3(
+   /* vec3 sigma = vec3(
         sqrtf(mu1(0)),
         sqrtf(mu1(1)),
-        sqrtf(mu1(2)));
-    
+        sqrtf(mu1(2))); */
+    vec3 sigma = mu1;
     //These values are arbitrary
     return 
-            (sigma(0) < 20) &&
-            (sigma(1) < 30) &&
-            (sigma(2) < 40);
+            (sigma(0) < 200) &&
+            (sigma(1) < 200) &&
+            (sigma(2) < 200);
 }
 
 //Checks photoconsistency of a voxel in the volume
@@ -253,7 +253,8 @@ bool planeSweep(
     std::vector<View*> views,
     Volume* volume,
     int d,
-    ivec3 bound)
+    ivec3 bound,
+    int& removed)
 {
     //Returns true when volume is photo consistent
     bool done = true;
@@ -273,10 +274,9 @@ bool planeSweep(
     for(int i=0; i<3; i++)
         p(i) = dn(i) < 0 ? bound[i] - 1 : 0;
     
+    cout << "sweeping " << dn << endl;
     for(int i=0; i<si; i++)
-    {
-        cout << "sweeping: " << p << endl;
-        
+    {        
         ivec3 q = p;
         for(int j=0; j<sj; j++)
         {
@@ -288,6 +288,7 @@ bool planeSweep(
                     if(!checkConsistency(views, volume, r, d))
                     {
                         (*volume)(r(0), r(1), r(2)) = 0;
+                        removed++;
                         done = false;
                     }
                 }
@@ -313,32 +314,44 @@ Volume* findHull(
     for(int k=0; k<zr; k++)
         (*volume)(i,j,k) = 255;
     
-    
+    int pass = 1; int num_removed;
     while(true)
     {
+        num_removed = 0;
+        cout << "Pass #" << pass++ << endl;
         //Clear consistency data
         for(size_t i=0; i<views.size(); i++) {
-            string fname = "temp/consist"; fname += '0' + i; fname += ".png";
-            views[i]->writeConsist(fname);
             views[i]->resetConsist();
         }
         
         //Do plane sweeps
         for(int i=0; i<6; i++)
-            planeSweep(views, volume, i, ivec3(xr, yr, zr));
+            planeSweep(views, volume, i, ivec3(xr, yr, zr), num_removed);
         
         //Mark the pixels from multiview volumes
         //Unimplemented
 
         //Save intermediate results for debugging
-        volume->save("temp/temp");
+        if (pass % 3 == 2) {
+            volume->save("temp/temp");
+            for(size_t i=0; i<views.size(); i++) {
+                string fname = "temp/consist"; fname += '0' + i; fname += ".png";
+                views[i]->writeConsist(fname);
+            }
+        }
+
+        cout << "end pass. removed " << num_removed << " voxels" << endl;
+        if (num_removed == 0) break;
         
-        //Reset volumes
+        //Reset volumes 
+        
+        /*
         for(int i=0; i<xr; i++)
         for(int j=0; j<yr; j++)
         for(int k=0; k<zr; k++)
             if((*volume)(i,j,k))
-                (*volume)(i,j,k) = 255; 
+                (*volume)(i,j,k) = 255;
+        */ 
     }
     
     return volume;
