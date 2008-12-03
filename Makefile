@@ -30,8 +30,8 @@ vol: $(VOLTARGET)
 $(TARGET): $(OBJECTS) main.o
 	$(CC) $(CFLAGS) main.o $(OBJECTS) $(LDFLAGS) -o $@
 
-$(VOLTARGET): $(OBJECTS) vol_main.o
-	$(CC) $(CFLAGS) vol_main.o $(OBJECTS) $(LDFLAGS) -o $@
+$(VOLTARGET): $(OBJECTS) vol_main.o video_loader.o
+	$(CC) $(CFLAGS) vol_main.o video_loader.o $(OBJECTS) $(LDFLAGS) -o $@
 
 clean:
 	$(RM) $(OBJECTS) $(DEPENDS)

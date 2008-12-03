@@ -32,14 +32,14 @@ vector<IplImage*> splitVideo(CvCapture * capture)
     while(true)
     {
         //Skip a fixed number of frames
-        for(int i=0; i<FRAMES_PER_SAMPLES; i++)
+        for(int i=0; i<FRAMES_PER_SAMPLE; i++)
         {
             if(!cvGrabFrame(capture))
                 return frames;
         }
         
         //Retrieve the frame
-        IplImage* tmp = cvRetrieveFrame(capture), img;
+        IplImage *tmp = cvRetrieveFrame(capture), *img;
         img = cvCreateImage(cvSize(tmp->width, tmp->height), IPL_DEPTH_8U, 3);
         cvCopyImage(tmp, img);
         
@@ -61,8 +61,8 @@ vector<BundlerCamera> runBundler(
     string options_path = temp_directory + "/options.txt";
     
     //Open list/options file
-    ofstream f_list     = ofstream(list_path),
-             f_options  = ofstream(options_path);
+    ofstream f_list     = ofstream(list_path.c_str()),
+             f_options  = ofstream(options_path.c_str());
     
     
     //Write frames to file
