@@ -35,9 +35,12 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     assert(img != NULL);
     
     //Apply filters (this is very tweaky)
+    /*
     threshold(pic);
     img = cvCreateImage(cvSize(pic->width, pic->height), IPL_DEPTH_8U, 3);
     cvSmooth(pic, img, CV_GAUSSIAN, 3, 3, 1.5);
+    */
+    img = pic;
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
@@ -136,6 +139,11 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
             flip(i,j) = 0.0f;
         for(int i=0; i<4; i++)
             flip(i,i) = 1.0f;
+        /*
+        flip(0,0) = -1.0f;
+        flip(0,3) = img->width;
+        */
+        
         flip(1,1) = -1.0f;
         flip(1,3) = img->height;
         
