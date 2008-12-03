@@ -17,7 +17,7 @@
 //Namespace aliasing
 using namespace std;
 
-#define SIZE 	128
+#define SIZE 	16
 
 //Program start point
 int main(int argc, char** argv)
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
         //Try solving volume using graph cuts
         Volume * volume = volumetricGraphCuts(
             views,
-            vec3(30, 30, 30),
+            vec3(5, 5, 5),
             hull);
         
 	cout << "Saving..." << endl;
