@@ -99,8 +99,10 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
     {
         cout << "Reading camera: " << k << endl;
         
+        //Load image
         string file;
         fin >> file;
+        IplImage * img = cvLoadImage(file.c_str());
         
         //Read K,R,T from file
         mat44 K, R;
@@ -110,6 +112,7 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
         for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
             fin >> K(i,j);
+        
         
         for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
@@ -125,8 +128,21 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
         K(1,3) = K(1,2);
         K(0,2) = K(1,2) = 0.0f;
         
+        
+        //Flip K over y axis
+        mat44 flip;
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+            flip(i,j) = 0.0f;
+        for(int i=0; i<4; i++)
+            flip(i,i) = 1.0f;
+        flip(1,1) = -1.0f;
+        flip(1,3) = img->height;
+        
+        K = mmult(flip, K);
+        
         //Read in image
-        result[k] = new View(cvLoadImage(file.c_str()), K, R, S);
+        result[k] = new View(img, K, R, S);
     }
     
     return result;
