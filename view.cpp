@@ -129,27 +129,7 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, floa
         //Fix up matrix
         K(0,3) = K(0,2);
         K(1,3) = K(1,2);
-        K(0,2) = K(1,2) = 0.0f;
-        
-        
-        //Flip K over y axis
-        mat44 flip;
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-            flip(i,j) = 0.0f;
-        for(int i=0; i<4; i++)
-            flip(i,i) = 1.0f;
-        /*
-        flip(0,0) = -1.0f;
-        flip(0,3) = img->width;
-        */
-        
-        /*
-        flip(1,1) = -1.0f;
-        flip(1,3) = img->height;
-        */
-        
-        K = mmult(flip, K);
+        K(0,2) = K(1,2) = 0.0f;
         
         //Apply focal distance matrix
         mat44 focal;
