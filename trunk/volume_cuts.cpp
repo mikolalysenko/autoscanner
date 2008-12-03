@@ -25,10 +25,13 @@ using namespace boost;
 
 
 //Lambda coefficient
-#define LAMBDA          0.1f
-#define INF             (1LL<<62LL)
-#define PREC            20LL
-
+#define LAMBDA             0.1f
+#define INF                (1LL<<62LL)
+#define PREC               20LL
+#define MU                 0.05f
+#define VIEW_COUNT         6
+#define RAY_SAMPLES_MAX    512
+#define EPSILON            0.001f
 
 //Aliases for boost graph data type
 typedef adjacency_list_traits < vecS, vecS, directedS > Traits;
@@ -64,15 +67,118 @@ int getNode(int x, int y, int z)
     return x + grid_dim(0) * (y + grid_dim(1) * z);
 }
 
+
+//Normalized cross correlation (not implemented)
+float ncc(View * v0, View* v1, vec3 x)
+{
+    return 0;
+}
+
+//Filters the samples (not implemented)
+void filterSamples(
+    float result[RAY_SAMPLES_MAX],
+    float samples[RAY_SAMPLES_MAX][VIEW_COUNT],
+    int n_samples)
+{
+}
+
+//Compute vote from camera i
+float vote(size_t n, vector<View*> views, vec3 x, Volume * hull)
+{
+    //Must have at least N+1 views total
+    assert(VIEW_COUNT + 1 <= views.size());
+    
+    //Sort views by distance to view i
+    vec3 c = views[n]->center;
+    
+    //Find the M closest views (not very efficient)
+    View  *closest_views[VIEW_COUNT+1];
+    float dist[VIEW_COUNT+1];
+    
+    for(int i=0; i<VIEW_COUNT+1; i++)
+        dist[i] = 1e60;
+    
+    for(size_t i=0; i<views.size(); i++)
+    {
+        //Find distance to base image
+        vec3 delta = views[i]->center;
+        delta -= c;
+        float d = delta(0) * delta(0) + delta(1) * delta(1) + delta(2) * delta(2);
+        
+        //Search through existing images and sort
+        for(size_t j=0; j<VIEW_COUNT+1; j++)
+        {
+            if(d < dist[j])
+            {
+                for(size_t k=VIEW_COUNT; k>j; k--)
+                {
+                    closest_views[k] = closest_views[k-1];
+                    dist[k] = dist[k-1];
+                }
+                
+                closest_views[j] = views[i];
+                dist[j] = j;
+                break;
+            }
+        }
+    }
+    
+    //The closest view should always be the base view
+    assert(closest_views[0] == views[n]);
+    
+    //Find optical ray
+    Ray r = Ray(x, c);
+    r.d -= x;
+    float l = sqrt(r.d(0) * r.d(0) + r.d(1) * r.d(1) + r.d(2) * r.d(2));
+    
+    //Trace samples of C(d)
+    static float samples[RAY_SAMPLES_MAX][VIEW_COUNT], filter_samples[RAY_SAMPLES_MAX];
+    int n_samples = 0;
+    for(float t=0.0f; t<=1.0f; t+=1.0f/l)
+    {
+        vec3 p = r(t);
+        
+        if( p(0) < 0 || p(0) >= grid_dim(0) ||
+            p(1) < 0 || p(1) >= grid_dim(1) ||
+            p(2) < 0 || p(2) >= grid_dim(2) ||
+            n_samples >= RAY_SAMPLES_MAX )
+            break;
+        
+        for(int i=0; i<VIEW_COUNT; i++)
+            samples[n_samples][i] = ncc(views[n], closest_views[i], p);
+        n_samples++;
+    }
+    
+    //Filter samples
+    filterSamples(filter_samples, samples, n_samples);
+    
+    //Locate max samples
+    float max_sample = filter_samples[1];
+    for(int i=2; i<n_samples; i++)
+    {
+        if(filter_samples[i] > max_sample)
+            max_sample = filter_samples[i];
+    }
+    
+    //If base point is not a maximum, no vote!
+    return filter_samples[0] >= max_sample - EPSILON ? filter_samples[0] : 0;
+}
+
 //Evaluate photoconsistency of a given grid point
 float evaluatePhotoConsistency(vector<View*> views, vec3 p, Volume * hull)
 {
-    return 1.0f;
+    //Formula 3 from Vogiatzis
+    float sum = 0.0f;
+    for(size_t i=0; i<views.size(); i++)
+        sum += vote(i, views, p, hull);
+    return exp(-MU * sum);
 }
 
-//Adds the edge to the volume graph (shouldn't this be shorter in boost?)
+//Adds the edge to the volume graph 
+//  (shouldn't this be shorter in boost?  I am probably doing this wrong...)
 void addEdge(int start, int end, double w)
 {
+    //Locate vertices
     Traits::vertex_descriptor u, v;
     u = vertex(start, *g);
     v = vertex(end, *g);
