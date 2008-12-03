@@ -77,7 +77,7 @@ vec3 View::readPixel(int ix, int iy) const
 
 
 //Loads up a set of views
-vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
+vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, float focal_length)
 {
     ifstream fin(filename);
     
@@ -148,6 +148,18 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box)
         flip(1,3) = img->height;
         
         K = mmult(flip, K);
+        
+        //Apply focal distance matrix
+        mat44 focal;
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+            focal(i,j) = 0.0f;
+        for(int i=0; i<4; i++)
+            focal(i,i) = 1.0f;
+            
+        //Set value to focal length
+        focal(3,2) = 1.0f / focal_length;
+        K = mmult(K, focal);
         
         //Read in image
         result[k] = new View(img, K, R, S);

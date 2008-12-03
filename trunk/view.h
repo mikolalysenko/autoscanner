@@ -48,6 +48,6 @@ struct View
 };
 
 //Loads a view set from file (using Stanford format)
-std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box);
+std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box, float focal_length);
 
 #endif
