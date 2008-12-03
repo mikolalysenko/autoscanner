@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 		low,
         high,
 		ivec3(SIZE, SIZE, SIZE),
-                22.0f);
+                2.1);
 
 /*
 	vector<View*> views = loadViews("temple/temple_par.txt", 
