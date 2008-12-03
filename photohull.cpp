@@ -111,6 +111,7 @@ struct Neighborhood
 // This clearly does not work.
 bool checkNeighborhood(vector<Neighborhood> &patches)
 {
+    return true;
     //No patches, no match
     if(patches.size() < 1)
         return true;
@@ -149,8 +150,7 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
         sqrtf(mu1(2))); */
     vec3 sigma = mu1;
     //These values are arbitrary
-    return  true ||
-            (sigma(0) < 12000) &&
+    return  (sigma(0) < 12000) &&
             (sigma(1) < 12000) &&
             (sigma(2) < 12000);
 }
@@ -187,8 +187,6 @@ bool checkConsistency(
                        cone[i](1) * pt(1) +
                        cone[i](2) * pt(2));
     }
-
-    
     
     //Traverse all views
     for(size_t i=0; i<views.size(); i++)
@@ -218,12 +216,13 @@ bool checkConsistency(
                 break;
             }
         }
-        if(fail)
-            continue;
+
+        //if(fail)
+        //    continue;
         
         //If already consistent, then continue
-        if(view->consist(ix, iy))
-            continue;
+        //if(view->consist(ix, iy))
+        //    continue;
         
 
         //Visual hull hack
@@ -231,14 +230,13 @@ bool checkConsistency(
         if(0.3 * pixel(0) + 0.59 * pixel(1) + 0.11 * pixel(2) < 30)
             return false;
         
-        
         //Accumulate statistics
         patches.push_back(Neighborhood(view, ix, iy));
     }
     
     //If not in frame, then voxel is trivially non-consistent
-    if(/*!in_frame ||*/false && !checkNeighborhood(patches))
-        return false;
+    //if(!in_frame && !checkNeighborhood(patches))
+    //    return true || false;
     
     //Mark consistency
     for(size_t i=0; i<patches.size(); i++) {
@@ -246,7 +244,6 @@ bool checkConsistency(
         for (pair<int, int> iter = vp.begin(); iter != vp.end(); vp.next(iter))
             patches[i].view->consist(iter.first, iter.second) = 255;
     }
-
     
     //Mark checked
     if(patches.size() > 0)
