@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 	//Read in some views
 	cout << "reading in files" << endl;
 
-	vector<View*> views = loadViews("templeSparseRing/templeSR_par.txt", 
+	vector<View*> views = loadViews("temple/templeSR_par.txt", 
 		vec3(-0.12f, -0.1f, -0.04f), 
 		vec3( 0.13f, 0.36f,  0.1f),
 		ivec3(SIZE, SIZE, SIZE));
