@@ -2,6 +2,7 @@
 #define VOLUME_H
 
 #include <cassert>
+#include <string>
 
 #include "misc.h"
 
@@ -17,6 +18,7 @@ struct Volume
     
     //Saves a volume
     void save(const char* filenae) const;
+    void savePly(const std::string& filename) const;
     
     //Array access operator
     unsigned char& operator()(size_t x, size_t y, size_t z)

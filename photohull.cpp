@@ -141,9 +141,9 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     
     //These values are arbitrary
     return 
-            (sigma(0) < 8) &&
-            (sigma(1) < 12) &&
-            (sigma(2) < 16);
+            (sigma(0) < 20) &&
+            (sigma(1) < 30) &&
+            (sigma(2) < 40);
 }
 
 //Checks photoconsistency of a voxel in the volume
@@ -296,9 +296,6 @@ bool planeSweep(
             q += du;
         }
         p += dn;
-    
-        //Save intermediate results for debugging
-        volume->save("temp/temp");
     }
 
     return done;
@@ -332,6 +329,9 @@ Volume* findHull(
         
         //Mark the pixels from multiview volumes
         //Unimplemented
+
+        //Save intermediate results for debugging
+        volume->save("temp/temp");
         
         //Reset volumes
         for(int i=0; i<xr; i++)

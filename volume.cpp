@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <fstream>
 
 //Project
 #include "misc.h"
@@ -44,6 +45,33 @@ void Volume::save(const char * file) const
     
     //Release image header
     cvReleaseImageHeader(&img);
+
+    savePly(file);
+}
+
+void Volume::savePly(const std::string& file) const {
+    int num_vertices = 0;
+    for (int i = 0; i < xRes * yRes * zRes; i++)
+        num_vertices += data[i] != 0;
+
+    ofstream fout((file + "-o.ply").c_str());
+
+    fout << "ply" << endl;
+    fout << "format ascii 1.0" << endl;
+    fout << "comment output from autoscanner" << endl;
+    fout << "element vertex " << num_vertices << endl;
+    fout << "property float x" << endl;
+    fout << "property float y" << endl;
+    fout << "property float z" << endl;
+    fout << "end_header" << endl;
+
+    for (int x = 0; x < xRes; x++)
+    for (int y = 0; y < yRes; y++)
+    for (int z = 0; z < zRes; z++) {
+        if ((*this)(x, y, z) != 0)
+            fout << x << " " << y << " " << z << endl;
+    }
+    
 }
 
 
