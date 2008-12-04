@@ -27,17 +27,20 @@ struct View
     
     //Reads
     vec3 readPixel(int ix, int iy) const;
+
+    bool in_bounds(int ix, int iy) const {
+        return ix >= 0 && ix < img->width && iy >= 0 && iy < img->height;
+    }
     
     //Reduce
     char consist(int ix, int iy) const
     {
-        assert(ix >= 0 && ix < img->width && iy >= 0 && iy < img->height);
-        return consist_data[ix + iy * img->width];
+        return consist(ix, iy);
     }
     
     char& consist(int ix, int iy)
     {
-        assert(ix >= 0 && ix < img->width && iy >= 0 && iy < img->height);
+        assert(in_bounds(ix, iy));
         return consist_data[ix + iy * img->width];
     }
     

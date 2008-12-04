@@ -213,7 +213,7 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     
     vec3 sigma = mu1;
     //These values are arbitrary
-    vec3 thresh(10000, 13000, 19000 );
+    vec3 thresh(9000, 13000, 16000 );
     bool cull1 = sigma(0) > thresh(0), 
         cull2 = sigma(1) > thresh(1),
         cull3 = sigma(2) > thresh(2);
