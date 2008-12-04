@@ -38,9 +38,11 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     /*
     threshold(pic);
     img = cvCreateImage(cvSize(pic->width, pic->height), IPL_DEPTH_8U, 3);
-    cvSmooth(pic, img, CV_GAUSSIAN, 3, 3, 1.5);
     */
+    
     img = pic;
+    cvSmooth(pic, img, CV_GAUSSIAN, 3, 3, 1.5);
+    
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
@@ -153,7 +155,7 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, floa
 void View::writeConsist(const std::string& filename) {
     IplImage * consistImg = cvCreateImageHeader(cvSize(img->width, img->height), IPL_DEPTH_8U, 1);
     consistImg->widthStep = img->width;
-    cout << filename << endl;
+    //cout << filename << endl;
     //Set data pointer
     consistImg->imageData = (char*)consist_data;
         
