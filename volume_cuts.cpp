@@ -32,6 +32,7 @@ using namespace boost;
 #define VIEW_COUNT         6
 #define RAY_SAMPLES_MAX    512
 #define EPSILON            0.001f
+#define WINDOW_SIZE        16
 
 //Aliases for boost graph data type
 typedef adjacency_list_traits < vecS, vecS, directedS > Traits;
@@ -80,6 +81,39 @@ void filterSamples(
     float samples[RAY_SAMPLES_MAX][VIEW_COUNT],
     int n_samples)
 {
+    /*
+    for(int i=0; i<n_samples; i++)
+    {
+        result[i] = 0.0f;
+        
+        for(int j=0; j<VIEW_COUNT; j++)
+        {
+            //Locate nearest maxima to i
+            int m_pos = i;
+            for(m=0; m<n_samples; m++)
+            {
+                if(m - i <= 1)
+                {
+                    m_pos = m - i;
+                    break;
+                }
+                
+                if( samples[m - i][j] > samples[m - i - 1][j] &&
+                    samples[m - i][j] > samples[m - i + 1][j] )
+                {
+                    //m_pos = m
+                }
+                
+            }
+            
+            //Perform parzen filter
+            for(int k=-WINDOW_SIZE/2; k<WINDOW_SIZE/2; k++)
+            {
+                result[i] += samples[k][j] * window(i - k + 
+            }
+        }
+    }
+    */
 }
 
 //Compute vote from camera i
