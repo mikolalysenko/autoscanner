@@ -15,7 +15,7 @@ using namespace blitz;
 #define FRAMES_PER_SAMPLE       10
 
 //Path to bundler script
-const char* bundler_path = "bundler/RunBundler.sh";
+const char* bundler_path = "/home/mikola/Projects/autoscanner/bundler/RunBundler.sh";
 
 //Camera produced by bundler
 struct BundlerCamera
@@ -26,8 +26,14 @@ struct BundlerCamera
 
 //Extract frames from video capture sequence
 //TODO: Need to implement a better criteria for this
-vector<IplImage*> splitVideo(CvCapture * capture)
+vector<IplImage*> splitVideo(const char * filename)
 {
+    cout << "Loading image " << filename << endl;
+    
+    //Run the capture process
+    CvCapture * capture = cvCaptureFromAVI(filename);
+    assert(capture);
+    
     vector<IplImage*> frames;
     
     while(true)
@@ -47,6 +53,8 @@ vector<IplImage*> splitVideo(CvCapture * capture)
         //Add to frame set
         frames.push_back(img);
     }
+    
+    cvReleaseCapture(&capture);
 }
 
 
@@ -57,30 +65,37 @@ vector<BundlerCamera> runBundler(
     vec3& box_max)
 {
     //Create paths
-    string temp_directory = string(getTempDirectory()) + "/bundler_pics";
+    string temp_directory = string(getTempDirectory()) + "/bundler";
+    string cur_directory = string(getenv("PWD"));
+    system((string("rm -rf ") + temp_directory).c_str());
+    system((string("mkdir ") + temp_directory).c_str());
+    chdir(temp_directory.c_str());
     
     //Write frames to file
     for(size_t i=0; i<frames.size(); i++)
     {
         stringstream ss;
         ss << temp_directory << "/frame" << i << ".jpg";
-        cvSaveImage(frames[i], ss.c_str());
+        
+        cout << "Saving frame: " << ss.str() << endl;
+        cvSaveImage(ss.str().c_str(), frames[i]);
     }
     
     //Call bundler
     string bundler_command = string(bundler_path) + " " + temp_directory;
-    system(string("rm -rf ") + temp_directory);
-    system(string("mkdir ") + temp_directory);
     system(bundler_command.c_str());
     
     //Read in data
+    ifstream bundle_data((temp_directory + "/bundle_.out").c_str());
     vector<BundlerCamera> result;
-    
     for(size_t i=0; i<frames.size(); i++)
     {
         
     }
 
+    //Return to base directory
+    chdir(cur_directory.c_str());
+    
     return result;
 }
 
@@ -92,14 +107,12 @@ IplImage * unwarp(IplImage * img, float k1, float k2)
 }
 
 
+
 //Loads up a view from file
 vector<View*> loadVideo(const char * filename, ivec3 grid_dim)
 {
     //Separate fames
-    CvCapture * capture = cvCaptureFromAVI(filename);
-    assert(capture);
-    vector<IplImage*> frames = splitVideo(capture);
-    cvReleaseCapture(&capture);
+    vector<IplImage*> frames = splitVideo(filename);
     
     //Run bundler on frames to obtain matrices & camera parameters
     vec3 box_min, box_max;

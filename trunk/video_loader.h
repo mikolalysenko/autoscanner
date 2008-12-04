@@ -9,6 +9,6 @@
 extern const char* bundler_path;
 
 //Loads a video sequence, calls bundler
-std::vector<View*> loadVideo(const char * video_file);
+std::vector<View*> loadVideo(const char * video_file, ivec3 grid_dim);
 
 #endif
