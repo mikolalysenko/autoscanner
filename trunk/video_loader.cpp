@@ -57,10 +57,80 @@ vector<IplImage*> splitVideo(const char * filename)
     cvReleaseCapture(&capture);
 }
 
+//Reads in bundler data
+vector<BundlerCamera> readBundlerData(istream& fin, vec3& box_min, vec3& box_max)
+{
+    //Read in number of data elements
+    int n_cameras, n_points;
+    fin >> n_cameras >> n_points;
+    
+    //Parse out cameras first
+    vector<BundlerCamera> result;
+    
+    for(int i=0; i<n_cameras; i++)
+    {
+        BundlerCamera cam;
+        fin >> cam.f >> cam.k1 >> cam.k2;
+        
+        for(int i=0; i<3; i++)
+        for(int j=0; j<3; j++)
+            fin >> cam.R(i,j);
+        
+        for(int i=0; i<3; i++)
+        {
+            fin >> cam.R(i,3);
+            cam.R(3,i) = 0.0f;
+        }
+        
+        cam.R(3,3) = 1.0f;
+        
+        result.push_back(cam);
+    }
+    
+    //Parse out point data & calculate bounding box
+    box_min = 1e30, box_max = -1e30;
+    
+    for(int i=0; i<n_points; i++)
+    {
+        vec3 p;
+        fin >> p(0) >> p(1) >> p(2);
+        
+        for(int j=0; j<3; j++)
+        {
+            box_min(j) = min(box_min(j), p(j));
+            box_max(j) = max(box_max(j), p(j));
+        }
+    }
+    
+    //Return the result
+    return result;
+}
+
+
+//Toss the bad bundler data
+void fixupBundlerData(vector<IplImage*>& frames, vector<BundlerCamera>& cameras)
+{
+    for(size_t i=cameras.size(); i>=0; i--)
+    {
+        //Check for singular camera matrix (obviously bad)
+        if(fabsf(det(cameras[i].R)) <= 1e-10f)
+        {
+            //Release iamge
+            cvReleaseImage(&frames[i]);
+            
+            //Resize vectors
+            cameras[i] = cameras[cameras.size()-1];
+            frames[i] = frames[frames.size()-1];
+            cameras.resize(cameras.size()-1);
+            frames.resize(frames.size()-1);
+        }
+    }
+}
+
 
 //Calls bundler script, calculates bounding box from points found using SfM
 vector<BundlerCamera> runBundler(
-    vector<IplImage*> frames, 
+    vector<IplImage*>& frames, 
     vec3& box_min, 
     vec3& box_max)
 {
@@ -87,12 +157,11 @@ vector<BundlerCamera> runBundler(
     
     //Read in data (do not know format yet)
     ifstream bundle_data((temp_directory + "/bundle_.out").c_str());
-    vector<BundlerCamera> result;
-    for(size_t i=0; i<frames.size(); i++)
-    {
-        
-    }
-
+    vector<BundlerCamera> result = readBundlerData(bundle_data, box_min, box_max);
+    
+    //Toss bad data
+    fixupBundlerData(frames, result);
+    
     //Return to base directory
     chdir(cur_directory.c_str());
     
@@ -120,7 +189,6 @@ vector<View*> loadVideo(const char * filename, ivec3 grid_dim)
     
     //Construct grid -> box matrix
     mat44 S;
-    
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
         S(i,j) = 0.0f;
