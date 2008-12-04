@@ -13,6 +13,7 @@
 #include "view.h"
 #include "photohull.h"
 #include "volume_cuts.h"
+#include "video_loader.h"
 
 //Namespace aliasing
 using namespace std;
@@ -22,6 +23,7 @@ using namespace std;
 //Program start point
 int main(int argc, char** argv)
 {
+    /*
 	//Read in some views
 	cout << "reading in files" << endl;
 
@@ -31,20 +33,6 @@ int main(int argc, char** argv)
 		ivec3(SIZE, SIZE, SIZE),
                 100.0f);
 
-/*
-	vector<View*> views = loadViews("temple/temple_par.txt", 
-		vec3(-0.12f, -0.1f, -0.04f), 
-		vec3( 0.13f, 0.4f,  0.1f),
-		ivec3(SIZE, SIZE, SIZE));
-*/
-
-	/*
-	vector<View*> views = loadViews("dino/dino_par_good.txt",
-		vec3(-0.00, -0.01,  -0.05),
-		vec3( 0.05,  0.1,    0.05),
-		ivec3(SIZE, SIZE, SIZE));
-	*/
-	
 	//Allocate volumetric graph cuts shape
         Volume * hull = new Volume(SIZE, SIZE, SIZE);
         
@@ -63,7 +51,10 @@ int main(int argc, char** argv)
         
 	cout << "Saving..." << endl;
 	volume->save("test/test");
-	
+	*/
+        
+        loadVideo("video.mp4", ivec3(SIZE, SIZE, SIZE));
+        
 	return 0;
 }
 
