@@ -85,7 +85,7 @@ vector<BundlerCamera> runBundler(
     string bundler_command = string(bundler_path) + " " + temp_directory;
     system(bundler_command.c_str());
     
-    //Read in data
+    //Read in data (do not know format yet)
     ifstream bundle_data((temp_directory + "/bundle_.out").c_str());
     vector<BundlerCamera> result;
     for(size_t i=0; i<frames.size(); i++)
