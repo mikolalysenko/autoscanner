@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp volume_cuts.cpp
+SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp
 
 DEPENDS  = $(SOURCES:.cpp=.d)
 OBJECTS  = $(SOURCES:.cpp=.o)
@@ -30,7 +30,7 @@ vol: $(VOLTARGET)
 $(TARGET): $(OBJECTS) main.o
 	$(CC) $(CFLAGS) main.o $(OBJECTS) $(LDFLAGS) -o $@
 
-$(VOLTARGET): $(OBJECTS) vol_main.o video_loader.o
+$(VOLTARGET): $(OBJECTS) vol_main.o video_loader.o volume_cuts.cpp
 	$(CC) $(CFLAGS) vol_main.o video_loader.o $(OBJECTS) $(LDFLAGS) -o $@
 
 clean:
