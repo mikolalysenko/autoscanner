@@ -10,6 +10,8 @@
 using namespace std;
 using namespace blitz;
 
+long long count1 = 0, count2 = 0, count3 = 0, count4 = 0, count5 = 0, count6 = 0;
+
 //Plane directions
 const vec3 
 DN[6] = {
@@ -107,10 +109,11 @@ struct VoxelProjection
             vec3 proj = hgmult(view->cam, v);
             verts[0][i] = proj(0); verts[1][i] = proj(1);
         }
-        x_min = * min_element(verts[0], verts[0] + 8);
-        y_min = * min_element(verts[1], verts[1] + 8);
-        x_max = * max_element(verts[0], verts[0] + 8);
-        y_max = * max_element(verts[1], verts[1] + 8);
+        int pad = 0;
+        x_min = * min_element(verts[0], verts[0] + 8) - pad;
+        y_min = * min_element(verts[1], verts[1] + 8) - pad;
+        x_max = * max_element(verts[0], verts[0] + 8) + pad;
+        y_max = * max_element(verts[1], verts[1] + 8) + pad;
         assert(x_min <= x_max);
         assert(y_min <= y_max);
         clamp(x_min, 0, view->img->width - 1); clamp(x_max, 0, view->img->width - 1);
@@ -130,6 +133,41 @@ struct VoxelProjection
             p.first++;
     }
 };
+
+void visualHull(
+    Volume* volume, 
+    std::vector<View*> views) {
+
+    double threshold = 5;
+
+    int xr = volume->xRes, yr = volume->yRes, zr = volume->zRes;
+    
+    for (int x = 0; x < xr; x++) { 
+        if (x % 10 == 0) { cout << "."; cout.flush(); }
+        if (x % 50 == 0) { cout << x; cout.flush(); }
+        for (int y = 0; y < yr; y++) {
+            for (int z = 0; z < zr; z++) {
+                vec3 pt(x + 0.5, y + 0.5, z + 0.5);
+                int num_views = 0, mark = 0;
+                for (int i = 0; i < views.size(); i++) {
+                    vec3 proj = hgmult(views[i]->cam, pt);
+                    if (!views[i]->in_bounds(proj(0), proj(1))) continue;
+                    num_views++;
+                    
+                    vec3 pixel = views[i]->readPixel(proj(0), proj(1));
+                    if ((pixel(0) + pixel(1) + pixel(2)) / 3 < threshold) mark++;
+                }
+                
+                if (mark > 2 || mark * 2 >= num_views) (*volume)(x,y,z) = 0;
+
+            }
+        }
+    }
+
+    cout << endl;
+
+
+}
 
 //A neighborhood within a view
 struct Neighborhood
@@ -162,11 +200,6 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
         pixel *= pixel;
         mu1 += pixel;
     }
-    
-    vec3 mu2 = mu0; 
-    mu2 /= (float)patches.size();
-
-    //if (patches.size() == 1 && mu2(0) + mu2(1) + mu2(2) < 40) return false;
 
     //No patches, no match
     if(patches.size() <= 1)
@@ -178,15 +211,17 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     mu1 -= mu0;
     mu1 /= (float)(patches.size() - 1);
     
-   /* vec3 sigma = vec3(
-        sqrtf(mu1(0)),
-        sqrtf(mu1(1)),
-        sqrtf(mu1(2))); */
     vec3 sigma = mu1;
     //These values are arbitrary
-    return  (sigma(0) < 4000) &&
-            (sigma(1) < 8000) &&
-            (sigma(2) < 16000);
+    vec3 thresh(10000, 13000, 19000 );
+    bool cull1 = sigma(0) > thresh(0), 
+        cull2 = sigma(1) > thresh(1),
+        cull3 = sigma(2) > thresh(2);
+    count1 += cull1 && !cull2 && !cull3;
+    count2 += !cull1 && cull2 && !cull3;
+    count3 += !cull1 && !cull2 && cull3;
+    count4 += cull1 || cull2 || cull3;
+    return  !cull1 && !cull2 && !cull3;
 }
 
 //Checks photoconsistency of a voxel in the volume
@@ -201,13 +236,13 @@ bool checkConsistency(
     
     bool in_frame = false;
     
-    vec3 pt = point;
-    pt += 0.5;
+    vec3 pt = point; pt += 0.5;
     
     //Construct the cone
     vec3 dn = DN[d], du = DU[d], dv = DV[d];
     
     Cone cone(dn, du, dv, pt);
+    int mark = 0;
     
     //Traverse all views
     for(size_t i=0; i<views.size(); i++)
@@ -217,30 +252,19 @@ bool checkConsistency(
         //Check for in-frame condition
         vec3 img_loc = hgmult(view->cam, pt);
         int ix = img_loc(0), iy = img_loc(1);
-        if(ix < 0 || ix >= view->img->width || iy < 0 || iy >= view->img->height)
-            continue;
-        in_frame = true;
         
-        //Check that the point is in the cone        
-
-        //if(!cone.contains(view->center))
-        //    continue;
+        if (!view->in_bounds(ix, iy) || cone.contains(view->center)) continue;
+        
+        in_frame = true;
         
         //If already consistent, then continue
         if(view->consist(ix, iy))
             continue;
         
-
-        //Visual hull hack
-        vec3 pixel = view->readPixel(ix, iy);
-        if(0.3 * pixel(0) + 0.59 * pixel(1) + 0.11 * pixel(2) < 2)
-            return false;
-        
         //Accumulate statistics
         patches.push_back(Neighborhood(view, ix, iy));
     }
     
-    //If not in frame, then voxel is trivially non-consistent
     if(!in_frame || !checkNeighborhood(patches))
         return false;
     
@@ -249,12 +273,6 @@ bool checkConsistency(
         VoxelProjection vp(patches[i].view, point);
         for (pair<int, int> iter = vp.begin(); iter != vp.end(); vp.next(iter))
             patches[i].view->consist(iter.first, iter.second) = 255;
-    }
-    
-    //Mark checked
-    if(patches.size() > 0)
-    {
-        (*volume)(point(0), point(1), point(2)) &= ~(1 << d);
     }
     
     return true;
@@ -268,6 +286,9 @@ bool planeSweep(
     ivec3 bound,
     int& removed)
 {
+    for(size_t t=0; t<views.size(); t++) {
+        views[t]->resetConsist();
+    }
     //Returns true when volume is photo consistent
     bool done = true;
     
@@ -286,7 +307,6 @@ bool planeSweep(
     for(int i=0; i<3; i++)
         p(i) = dn(i) < 0 ? bound[i] - 1 : 0;
     
-    cout << "sweeping " << dn << endl;
     for(int i=0; i<si; i++)
     {        
         ivec3 q = p;
@@ -328,18 +348,19 @@ Volume* findHull(
         (*volume)(i,j,k) = 255;
     
     int pass = 1; int num_removed;
+
+    visualHull(volume, views);
     while(true)
     {
         num_removed = 0;
-        cout << "Pass #" << pass++ << endl;
-        //Clear consistency data
-        for(size_t i=0; i<views.size(); i++) {
-            views[i]->resetConsist();
-        }
+        cout << "Pass #" << pass++ << endl;        
         
         //Do plane sweeps
-        for(int i=0; i<6; i++)
+        for(int i=0; i<6; i++) {
+            cout << i << " " << flush;
             planeSweep(views, volume, i, ivec3(xr, yr, zr), num_removed);
+        }
+        cout << endl;
         
         //Mark the pixels from multiview volumes
         //Unimplemented
@@ -354,20 +375,15 @@ Volume* findHull(
         }
 
         cout << "end pass. removed " << num_removed << " voxels" << endl;
+        
+        cout << count1 << " " << count2 << " " << count3 << " " << count4 << " "
+             << count5 << " " << count6 << endl;
         if (num_removed == 0) break;
-        
-        //Reset volumes 
-        
-        /*
-        for(int i=0; i<xr; i++)
-        for(int j=0; j<yr; j++)
-        for(int k=0; k<zr; k++)
-            if((*volume)(i,j,k))
-                (*volume)(i,j,k) = 255;
-        */ 
     }
     
     return volume;
 }
+
+
 
 
