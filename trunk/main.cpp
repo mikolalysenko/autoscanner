@@ -16,7 +16,7 @@
 //Namespace aliasing
 using namespace std;
 
-#define SIZE 	160
+#define SIZE 	200
 
 //Program start point
 int main(int argc, char** argv)
@@ -24,14 +24,14 @@ int main(int argc, char** argv)
 	//Read in some views
 	cout << "reading in files" << endl;
 
-    vec3 low(-0.12f, -0.1f, -0.04f), 
-		high( 0.13f, 0.36f,  0.1f);
+    vec3 low(-0.2f, -0.14f, -0.14f), 
+		high( 0.2f, 0.4f,  0.08f);
 
-	vector<View*> views = loadViews("temple/templeSR_par.txt", 
+	vector<View*> views = loadViews("templeR/templeR_par.txt", 
 		low,
         high,
 		ivec3(SIZE, SIZE, SIZE),
-                2.2);
+                1.0);
 
 /*
 	vector<View*> views = loadViews("temple/temple_par.txt", 
