@@ -1,4 +1,5 @@
 #include <vector>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -56,32 +57,29 @@ vector<BundlerCamera> runBundler(
     vec3& box_max)
 {
     //Create paths
-    string temp_directory = string(getTempDirectory());
-    string list_path = temp_directory + "/list.txt";
-    string options_path = temp_directory + "/options.txt";
-    
-    //Open list/options file
-    ofstream f_list(list_path.c_str()),
-             f_options(options_path.c_str());
-    
+    string temp_directory = string(getTempDirectory()) + "/bundler_pics";
     
     //Write frames to file
     for(size_t i=0; i<frames.size(); i++)
     {
-        
+        stringstream ss;
+        ss << temp_directory << "/frame" << i << ".jpg";
+        cvSaveImage(frames[i], ss.c_str());
     }
     
-    f_list.close();
-    f_options.close();
-    
-    
     //Call bundler
-    string bundler_command = string(bundler_path) + " " + list_path + " --options_file " + options_path;
+    string bundler_command = string(bundler_path) + " " + temp_directory;
+    system(string("rm -rf ") + temp_directory);
+    system(string("mkdir ") + temp_directory);
     system(bundler_command.c_str());
     
     //Read in data
     vector<BundlerCamera> result;
     
+    for(size_t i=0; i<frames.size(); i++)
+    {
+        
+    }
 
     return result;
 }
