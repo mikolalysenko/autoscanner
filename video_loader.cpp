@@ -84,11 +84,13 @@ void findBox(
         //Throw out bad points
         for(int j=0; j<3; j++)
         {
-            if( p(j) < -10 || p(j) > 10)
+            if( p(j) < -1000 || p(j) > 1000)
             {
                 goto skip;
             }
         }
+        
+        swap(p(0), p(2));
         
         
         for(int j=0; j<3; j++)
@@ -100,8 +102,13 @@ void findBox(
         skip: continue;
     }
     
+    /*
     box_min -= 0.1f;
     box_max += 0.1f;
+    */
+    
+    box_min -= 5;
+    box_max += 5;
 }
 
 //Reads in bundler data

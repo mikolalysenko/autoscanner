@@ -58,4 +58,7 @@ std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box,
 void saveTempViews(const char * directory, std::vector<View*> views);
 std::vector<View*> loadTempViews(const char* directory);
 
+//Save cameras to PLY
+void saveCameraPLY(const char * filename, std::vector<View*> views);
+
 #endif
