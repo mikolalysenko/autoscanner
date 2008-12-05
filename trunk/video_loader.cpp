@@ -68,6 +68,42 @@ vector<IplImage*> splitVideo(const char * filename)
     cvReleaseCapture(&capture);
 }
 
+//Compute a bounding box from the filtered point data
+void findBox(
+    vector<vec3> points,
+    vec3& box_min,
+    vec3& box_max)
+{
+    box_min = +100.0f;
+    box_max = -100.0f;
+    
+    for(size_t i=0; i<points.size(); i++)
+    {
+        vec3 p = points[i];
+        
+        //Throw out bad points
+        for(int j=0; j<3; j++)
+        {
+            if( p(j) < -10 || p(j) > 10)
+            {
+                goto skip;
+            }
+        }
+        
+        
+        for(int j=0; j<3; j++)
+        {
+            box_min(j) = min(box_min(j), p(j));
+            box_max(j) = max(box_max(j), p(j));
+        }
+        
+        skip: continue;
+    }
+    
+    box_min -= 0.1f;
+    box_max += 0.1f;
+}
+
 //Reads in bundler data
 vector<BundlerCamera> readBundlerData(
     const char * filename, 
@@ -96,17 +132,22 @@ vector<BundlerCamera> readBundlerData(
     
     for(int k=0; k<n_cameras; k++)
     {
-        cout << "Reading camera #" << k << endl;
+        assert(!fin.fail());
         
         BundlerCamera cam;
-        fin >> cam.f >> cam.k1 >> cam.k2;
+        
+        double f, k1, k2;
+        fin >> f >> k1 >> k2;
+        
+        cam.f = f;
+        cam.k1 = k1;
+        cam.k2 = k2;
         
         for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
         {
             double d;
             assert(fin >> d);
-            cout << d << endl;
             
             cam.R(i,j) = d;
         }
@@ -115,7 +156,6 @@ vector<BundlerCamera> readBundlerData(
         {
             double d;
             assert(fin >> d);
-            cout << d << endl;
             
             cam.R(i,3) = d;
             cam.R(3,i) = 0.0f;
@@ -126,48 +166,25 @@ vector<BundlerCamera> readBundlerData(
         cout << "Camera " << k << " = " << cam << endl;
         result.push_back(cam);
     }
-    
-    
-    
-    for(int i=0;;i++)
-    {
-        string s;
-        assert(fin >> s);
-        cout << i << "Got: " << s << endl;
-    }
-    
-    
-
-    
+        
     //Parse out point data & calculate bounding box
-    box_min = 1e30, box_max = -1e30;
+    vector<vec3> points;
     
     cout << "Reading point data..." << endl;
-
-    
-    
     for(int i=0; i<n_points; i++)
     {
-        vec3 p, c;
+        double px, py, pz, cr, cg, cb;
         
-        cout << "Reading point " << i << "..." << endl;
-        
-        fin >> p(0);
-        fin >> p(1);
-        fin >> p(2);
-
-        cout << "got p: " << p << endl;
-        
-        if(!(fin >> p(0) >> p(1) >> p(2) >> c(0) >> c(1) >> c(2)))
+        if(!(fin >> px >> py >> pz
+                 >> cr >> cg >> cb))
         {
-            cout << "Unexpected EOF!" << endl;
-            break;
+            cout << "Unexpected EOF" << endl;
+            exit(1);
         }
         
-        cout << "got p: " << p << endl;
-        cout << "color = " << c << endl;
+        vec3 p = vec3(px, py, pz), c = vec3(cr, cg, cb);
         
-        cout << "Visible in: ";
+        cout << "got p: " << p << endl;
         
         //Read in visible locations
         int n_views;
@@ -178,32 +195,17 @@ vector<BundlerCamera> readBundlerData(
             float x, y;         //x-y pixel coordinates
             
             fin >> v >> k >> x >> y;
-            cout << "(" << v 
-                << ", " << k 
-                << ", " << x 
-                << ", " << y 
-                << ") ";
         }
         cout << endl;
-        
-        //Update box coordinates
-        for(int j=0; j<3; j++)
-        {
-            box_min(j) = min(box_min(j), p(j));
-            box_max(j) = max(box_max(j), p(j));
-        }
+
+        points.push_back(p);
     }
     
-    cout << "Box = " << box_min << " --- " << box_max << endl;
+    //Calculate bounding box
+    findBox(points, box_min, box_max);
     
-    if(abs(box_min(0) - box_max(0)) <= 1e-10 ||
-        abs(box_min(1) - box_max(1)) <= 1e-10 ||
-        abs(box_min(2) - box_max(2)) <= 1e-10)
-    {
-        cout << "Couldn't compute box bounds" << endl;
-        box_min = vec3(-1,-1,-1);
-        box_max = vec3(1,1,1);
-    }
+    //Print results
+    cout << "Box = " << box_min << " --- " << box_max << endl;    
     
     //Return the result
     return result;
@@ -221,7 +223,11 @@ void fixupBundlerData(vector<IplImage*>& frames, vector<BundlerCamera>& cameras)
         float d = det(cameras[i].R);
         
         //Check for singular camera matrix (obviously bad)
-        if(abs(d) <= 1e-10f)
+        if(abs(d) <= 1e-10f || 
+            len(vec3(
+                cameras[i].R(0,3),
+                cameras[i].R(1,3),
+                cameras[i].R(2,3))) > 30.0f)
         {
             cout << "Singular matrix for camera " << i << ", D = " << d << endl
                 << "cam = " << cameras[i] << endl;
