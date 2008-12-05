@@ -43,7 +43,7 @@ typedef adjacency_list < vecS, vecS, directedS, no_property,
     property < edge_reverse_t, Traits::edge_descriptor > > > > Graph;
 
 
-//Allocate flow network graph
+//Flow network graph
 Graph *g;
 
 //Graph property accessors
