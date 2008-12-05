@@ -6,6 +6,9 @@
 
 //STL
 #include <vector>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 //Project files
 #include "misc.h"
@@ -18,7 +21,7 @@
 //Namespace aliasing
 using namespace std;
 
-#define SIZE 	32
+#define SIZE 	128
 
 //Program start point
 int main(int argc, char** argv)
@@ -60,6 +63,10 @@ int main(int argc, char** argv)
             "test_bundle2",
             ivec3(SIZE, SIZE, SIZE),
             low, high);
+        
+        saveTempViews("temp_views", frames);
+        
+        //vector<View*> frames = loadTempViews("temp_views");
         
         Volume * hull = findHull(frames, 
             SIZE,SIZE,SIZE,

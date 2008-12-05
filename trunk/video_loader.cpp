@@ -297,38 +297,6 @@ vector<BundlerCamera> runBundler(
 //Undistorts image from k1 - k2
 IplImage * unwarp(IplImage * img, float k1, float k2)
 {
-    /*
-    //Interface for doing this has changed...  Need to work out details
-    
-    //Allocate temp buffer
-    int * data = (int*)malloc(3 * img->width * img->height);
-    
-    //matrices
-    float matrix[9];
-    for(int i=0; i<9; i++)
-        matrix[i] = 0.0f;
-    matrix[0] = matrix[4] = matrix[7] = 1.0f;
-    
-    float coeff[4];
-    coeff[0] = k1;
-    coeff[1] = k2;
-    coeff[2] = coeff[3] = 0.0f;
-    
-    IplImage * undist = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U, 3);
-    
-    //Undistort image
-    cvUndistortInitMap(img, undist, matrix, coeff, data, true);
-    
-    //For debugging, save undistorted image
-    cvUndistortOnce(img, undist, data, true);
-    cvSaveImage("undistort.jpg", undist);
-    cvCopyImage(undist, img);
-    cvReleaseImage(undist);
-    
-    //Release temporary data
-    free(data);
-    */
-    
     //Not yet implemented.  Need to read OpenCV documentation
     return img;
 }

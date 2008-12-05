@@ -23,6 +23,7 @@ struct View
     vec3 center;
     
     //Constructs a view
+    View(IplImage *img_, mat44 cam_, mat44 cam_inv_, vec3 center_);
     View(IplImage *img_, mat44 K, mat44 R, mat44 S);
     
     //Reads
