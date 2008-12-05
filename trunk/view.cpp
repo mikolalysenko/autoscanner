@@ -196,29 +196,29 @@ void saveTempViews(const char * directory, std::vector<View*> views)
     
     fout << views.size() << endl;
     
-    for(size_t i=0; i<views.size(); i++)
+    for(size_t n=0; n<views.size(); n++)
     {
         char name[1024];
-        snprintf(name, 1024, "%s/frame%04d.tif", directory, i);
+        snprintf(name, 1024, "%s/frame%04d.tif", directory, n);
         fout << name << " ";
         
-        cvSaveImage(name, views[i]->img);
+        cvSaveImage(name, views[n]->img);
         
         for(int i=0; i<4; i++)
         for(int j=0; j<4; j++)
         {
-            fout << views[i]->cam(i,j) << " ";
+            fout << views[n]->cam(i,j) << " ";
         }
         
         for(int i=0; i<4; i++)
         for(int j=0; j<4; j++)
         {
-            fout << views[i]->cam_inv(i,j) << " ";
+            fout << views[n]->cam_inv(i,j) << " ";
         }
         
         for(int i=0; i<3; i++)
         {
-            fout << views[i]->center(i) << " ";
+            fout << views[n]->center(i) << " ";
         }
         
         fout << endl;
