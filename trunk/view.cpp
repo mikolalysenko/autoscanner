@@ -51,6 +51,12 @@ View::View(IplImage * pic, mat44 cam_, mat44 cam_inv_, vec3 center_)
     cam = cam_;
     cam_inv = cam_inv_;
     center = center_;
+
+    //Debug spam
+    cout << "Camera: " << cam << endl
+         << "CamInv: " << cam_inv << endl
+         << "Center = " << center << endl;
+
 }
 
 //View constructor
@@ -66,7 +72,9 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     
     //Calculate camera matrices
     cam = mmult(K, mmult(R, S));
-    cam_inv = inverse(cam);
+    //cam_inv = inverse(cam);
+    
+    cam_inv = inverse(mmult(R, S));
     
     //Compute optical center
     center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
@@ -266,5 +274,57 @@ std::vector<View*> loadTempViews(const char* directory)
     }
     
     return result;
+}
+
+void saveCameraPLY(const char * file, vector<View*> views)
+{
+    ofstream fout((string(file) + "-o.ply").c_str(), ios_base::out | ios_base::trunc);
+
+    fout << "ply" << endl;
+    fout << "format ascii 1.0" << endl;
+    fout << "comment output from autoscanner" << endl;
+    fout << "element vertex " << (1 + 10) * views.size() << endl;
+    fout << "property float x" << endl;
+    fout << "property float y" << endl;
+    fout << "property float z" << endl;
+    fout << "end_header" << endl;
+
+    
+    for(size_t i=0; i<views.size(); i++)
+    {
+        fout << views[i]->center(0) << " "
+             << views[i]->center(1) << " "
+             << views[i]->center(2) << endl;
+        
+        for(float t=0.0f; t<=1.0; t+=0.1)
+        {
+            vec3 p = hgmult(views[i]->cam_inv, vec3(0,0,t));
+            
+            fout << p(0) << " "
+                 << p(1) << " "
+                 << p(2) << endl;
+        }
+
+        /*
+        for(float t=0.0f; t<=1.0; t+=0.25)
+        {
+            vec3 p = hgmult(views[i]->cam_inv, vec3(0,t,0));
+            
+            fout << p(0) << " "
+                 << p(1) << " "
+                 << p(2) << endl;
+        }
+        
+        for(float t=0.0f; t<=1.0; t+=0.333)
+        {
+            vec3 p = hgmult(views[i]->cam_inv, vec3(t,0,0));
+            
+            fout << p(0) << " "
+                 << p(1) << " "
+                 << p(2) << endl;
+        }
+        */
+
+    }
 }
 
