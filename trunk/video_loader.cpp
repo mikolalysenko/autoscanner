@@ -12,7 +12,7 @@ using namespace std;
 using namespace blitz;
 
 //Sample every X frames
-#define FRAMES_PER_SAMPLE       25
+#define FRAMES_PER_SAMPLE       30
 
 //Path to bundler script
 const char* bundler_path = "/home/mikola/Projects/autoscanner/bundler/RunBundler.sh";
@@ -79,9 +79,10 @@ vector<BundlerCamera> readBundlerData(
     //Create read file
     ifstream fin(filename);
     
-    //Skip first line
+    //Skip first line (should be "#Bundle file v0.3")
     char buf[1024];
     fin.getline(buf, 1024);
+    assert(strcmp(buf, "# Bundle file v0.3") == 0);
     
     //Read in number of data elements
     int n_cameras, n_points;
@@ -121,11 +122,45 @@ vector<BundlerCamera> readBundlerData(
     
     for(int i=0; i<n_points; i++)
     {
-        vec3 p;
-        fin >> p(0) >> p(1) >> p(2);
+        vec3 p, c;
         
+        cout << "Reading point " << i << "..." << endl;
+        
+        fin >> p(0);
+        fin >> p(1);
+        fin >> p(2);
+
         cout << "got p: " << p << endl;
         
+        if(!(fin >> p(0) >> p(1) >> p(2) >> c(0) >> c(1) >> c(2)))
+        {
+            cout << "Unexpected EOF!" << endl;
+            break;
+        }
+        
+        cout << "got p: " << p << endl;
+        cout << "color = " << c << endl;
+        
+        cout << "Visible in: ";
+        
+        //Read in visible locations
+        int n_views;
+        fin >> n_views;
+        for(int j=0; j<n_views; j++)
+        {
+            int v, k;           //Camera, feature point
+            float x, y;         //x-y pixel coordinates
+            
+            fin >> v >> k >> x >> y;
+            cout << "(" << v 
+                << ", " << k 
+                << ", " << x 
+                << ", " << y 
+                << ") ";
+        }
+        cout << endl;
+        
+        //Update box coordinates
         for(int j=0; j<3; j++)
         {
             box_min(j) = min(box_min(j), p(j));
@@ -200,11 +235,11 @@ vector<BundlerCamera> runBundler(
     //Write frames to file
     for(size_t i=0; i<frames.size(); i++)
     {
-        stringstream ss;
-        ss << temp_directory << "/frame" << i << ".jpg";
+        char file_name[1024];
+        snprintf(file_name, 1024, "%s/frame%04d.jpg",  temp_directory.c_str(), i);
         
-        cout << "Saving frame: " << ss.str() << endl;
-        cvSaveImage(ss.str().c_str(), frames[i]);
+        cout << "Saving frame: " << file_name << endl;
+        cvSaveImage(file_name, frames[i]);
     }
     
     //Call bundler
@@ -230,6 +265,37 @@ vector<BundlerCamera> runBundler(
 //Undistorts image from k1 - k2
 IplImage * unwarp(IplImage * img, float k1, float k2)
 {
+    /*
+    //Interface for doing this has changed...  Need to work out details
+    
+    //Allocate temp buffer
+    int * data = (int*)malloc(3 * img->width * img->height);
+    
+    //matrices
+    float matrix[9];
+    for(int i=0; i<9; i++)
+        matrix[i] = 0.0f;
+    matrix[0] = matrix[4] = matrix[7] = 1.0f;
+    
+    float coeff[4];
+    coeff[0] = k1;
+    coeff[1] = k2;
+    coeff[2] = coeff[3] = 0.0f;
+    
+    IplImage * undist = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U, 3);
+    
+    //Undistort image
+    cvUndistortInitMap(img, undist, matrix, coeff, data, true);
+    
+    //For debugging, save undistorted image
+    cvUndistortOnce(img, undist, data, true);
+    cvSaveImage("undistort.jpg", undist);
+    cvCopyImage(undist, img);
+    cvReleaseImage(undist);
+    
+    //Release temporary data
+    free(data);
+    */
     
     //Not yet implemented.  Need to read OpenCV documentation
     return img;
@@ -287,8 +353,7 @@ vector<View*> convertBundlerData(
         for(int i=0; i<4; i++)
             P(i,i) = 1.0f;
         P(3,3) = -1.0f;
-        P(3,2) = 1.0f / cameras[n].f;
-        P(2,2) = 0.0f;
+        P(3,2) = 1.0f;
         K = mmult(K, P);
         */
         
@@ -328,7 +393,7 @@ vector<View*> loadTempBundleData(
     vec3& box_min, 
     vec3& box_max)
 {
-    //Load up images from list file
+    //Load up images from parsed list file
     ifstream fin((string(directory) + "/list.txt").c_str());
     vector<IplImage*> frames;
     
@@ -338,8 +403,15 @@ vector<View*> loadTempBundleData(
         if(!(fin >> name))
             break;
         
-        //Trim off the .
-        name.erase(0, 1);
+        //Trim off prefix directory
+        for(int k=name.size()-1; k>=0; k--)
+        {
+            if(name[k] == '/')
+            {
+                name.erase(0, k);
+                break;
+            }
+        }
         name = string(directory) + string("/") + name;
         
         cout << "Loading image " << name << endl;
