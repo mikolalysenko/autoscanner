@@ -1,7 +1,14 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <cassert>
+
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "misc.h"
 #include "view.h"
@@ -30,19 +37,29 @@ void threshold(IplImage * img)
 }
 
 //View constructor
+View::View(IplImage * pic, mat44 cam_, mat44 cam_inv_, vec3 center_)
+{
+    assert(img != NULL);
+    
+    //Apply filters (this is very tweaky)
+    img = pic;    
+    
+    //Create data
+    consist_data = (char*)malloc(img->width * img->height);
+    
+    //Calculate camera matrices
+    cam = cam_;
+    cam_inv = cam_inv_;
+    center = center_;
+}
+
+//View constructor
 View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
 {
     assert(img != NULL);
     
     //Apply filters (this is very tweaky)
-    /*
-    threshold(pic);
-    img = cvCreateImage(cvSize(pic->width, pic->height), IPL_DEPTH_8U, 3);
-    */
-    
     img = pic;
-    cvSmooth(pic, img, CV_GAUSSIAN, 3, 3, 1.5);
-    
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
@@ -62,6 +79,7 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
          << "CamInv: " << cam_inv << endl
          << "Center = " << center << endl;
 }
+
 
 //Read a pixel from the view
 vec3 View::readPixel(int ix, int iy) const
@@ -163,5 +181,90 @@ void View::writeConsist(const std::string& filename) {
     cvSaveImage(filename.c_str(), consistImg);
 
     cvReleaseImageHeader(&consistImg);
-
 }
+
+
+
+//Saves a pile of views to an interchange format
+void saveTempViews(const char * directory, std::vector<View*> views)
+{
+    mkdir(directory, 0777);
+    
+    ofstream fout((string(directory) + "/list.txt").c_str());
+    
+    fout.setf(ios::scientific);
+    
+    fout << views.size() << endl;
+    
+    for(size_t i=0; i<views.size(); i++)
+    {
+        char name[1024];
+        snprintf(name, 1024, "%s/frame%04d.tif", directory, i);
+        fout << name << " ";
+        
+        cvSaveImage(name, views[i]->img);
+        
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+        {
+            fout << views[i]->cam(i,j) << " ";
+        }
+        
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+        {
+            fout << views[i]->cam_inv(i,j) << " ";
+        }
+        
+        for(int i=0; i<3; i++)
+        {
+            fout << views[i]->center(i) << " ";
+        }
+        
+        fout << endl;
+    }
+}
+
+
+std::vector<View*> loadTempViews(const char* directory)
+{
+    ifstream fin((string(directory) + "/list.txt").c_str());
+    
+    size_t n_views;
+    fin >> n_views;
+    
+    vector<View*> result;
+    
+    for(size_t i=0; i<n_views; i++)
+    {
+        string filename;
+        fin >> filename;
+        
+        IplImage * img = cvLoadImage(filename.c_str());
+        
+        mat44 cam, cam_inv;
+        vec3 center;
+        
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+        {
+            fin >> cam(i,j);
+        }
+        
+        for(int i=0; i<4; i++)
+        for(int j=0; j<4; j++)
+        {
+            fin >> cam_inv(i,j);
+        }
+        
+        for(int i=0; i<3; i++)
+        {
+            fin >> center(i);
+        }
+        
+        result.push_back(new View(img, cam, cam_inv, center));
+    }
+    
+    return result;
+}
+
