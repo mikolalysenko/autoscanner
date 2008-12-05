@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 
 #include "misc.h"
 
@@ -13,6 +14,11 @@ char * getTempDirectory()
     if(getenv("TMP"))
         return getenv("TMP");
     return "/tmp/";
+}
+
+float len(const vec3& v)
+{
+    return sqrtf(v(0) * v(0) + v(1) * v(1) + v(2) * v(2));
 }
 
 

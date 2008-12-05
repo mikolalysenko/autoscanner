@@ -66,6 +66,7 @@ extern mat44 transpose(const mat44& m);
 extern mat44 mmult(const mat44& a, const mat44& b);
 extern vec3 hgmult(const mat44& a, const vec3& b);
 extern vec4 vmult(const mat44& a, const vec4& b);
+extern float len(const vec3& v);
 
 //Retrieves temporary directory
 extern char * getTempDirectory();
