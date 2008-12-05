@@ -53,4 +53,8 @@ struct View
 //Loads a view set from file (using Stanford format)
 std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box, float focal_length);
 
+//Saves a pile of views to an interchange format
+void saveTempViews(const char * directory, std::vector<View*> views);
+std::vector<View*> loadTempViews(const char* directory);
+
 #endif

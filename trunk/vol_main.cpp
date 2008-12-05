@@ -23,6 +23,7 @@ using namespace std;
 //Program start point
 int main(int argc, char** argv)
 {
+    /*
 	//Read in some views
 	cout << "reading in files" << endl;
 
@@ -50,8 +51,22 @@ int main(int argc, char** argv)
         
 	cout << "Saving..." << endl;
 	volume->save("test/test");
+    */
+    
+        vec3 low, high;
+        //vector<View*> frames = loadVideo("video.avi", ivec3(SIZE, SIZE, SIZE), low, high);
         
-        //loadVideo("video.mp4", ivec3(SIZE, SIZE, SIZE));
+        vector<View*> frames = loadTempBundleData(
+            "test_bundle",
+            ivec3(SIZE, SIZE, SIZE),
+            low, high);
+        
+        Volume * hull = findHull(frames, 
+            SIZE,SIZE,SIZE,
+            low, high);
+        
+        hull->save("test/test");
+    
         
 	return 0;
 }

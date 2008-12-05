@@ -25,7 +25,7 @@ using namespace boost;
 
 
 //Lambda coefficient
-#define LAMBDA             0.1f
+#define LAMBDA             0.0001f
 #define INF                (1LL<<62LL)
 #define PREC               20LL
 #define MU                 0.05f
@@ -190,9 +190,7 @@ void parzenFilter(float * result, float * samples, int n_samples)
     {
         float v = kernel(i - maxima[i]) * samples[maxima[i]];
         result[i] += v;
-          
         //cout << "f(" << i << ")=" << samples[i] << ", maxima = " << maxima[i] << ", parz = " << v << endl;
-      
     }
 }
 
@@ -318,7 +316,7 @@ float evaluatePhotoConsistency(vector<View*> views, vec3 p, Volume * hull)
         //cout << "vote(" << i << ") = " << v << endl;
         sum += v;
     }
-    return exp(-sum);
+    return exp(-MU * sum);
 }
 
 //Adds the edge to the volume graph 
