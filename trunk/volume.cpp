@@ -51,9 +51,9 @@ void Volume::save(const char * file) const
 
 void Volume::savePly(const std::string& file) const {
     int num_vertices = 0;
-    for (int x = 0; x < xRes; x++)
-    for (int y = 0; y < yRes; y++)
-    for (int z = 0; z < zRes; z++)
+    for (size_t x = 0; x < xRes; x++)
+    for (size_t y = 0; y < yRes; y++)
+    for (size_t z = 0; z < zRes; z++)
         num_vertices += on_surface(x, y, z);
 
     ifstream fin((file + "-o.ply").c_str());
@@ -72,11 +72,15 @@ void Volume::savePly(const std::string& file) const {
     fout << "property float z" << endl;
     fout << "end_header" << endl;
 
-    for (int x = 0; x < xRes; x++)
-    for (int y = 0; y < yRes; y++)
-    for (int z = 0; z < zRes; z++) {
+    for (size_t x = 0; x < xRes; x++)
+    for (size_t y = 0; y < yRes; y++)
+    for (size_t z = 0; z < zRes; z++) {
         if (on_surface(x, y, z) != 0) {
-            vec3 pos = pos_3d(x,y,z);
+            vec3 pos = pos_3d(
+                (double)x + drand48(),
+                (double)y + drand48(),
+                (double)z + drand48());
+            
             fout << pos(0) << " " << pos(1) << " " << pos(2) << endl;
         }
     }
