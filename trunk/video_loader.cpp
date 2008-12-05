@@ -80,9 +80,10 @@ vector<BundlerCamera> readBundlerData(
     ifstream fin(filename);
     
     //Skip first line (should be "#Bundle file v0.3")
-    char buf[1024];
+    static char buf[1024];
     fin.getline(buf, 1024);
     assert(strcmp(buf, "# Bundle file v0.3") == 0);
+    
     
     //Read in number of data elements
     int n_cameras, n_points;
@@ -95,30 +96,55 @@ vector<BundlerCamera> readBundlerData(
     
     for(int k=0; k<n_cameras; k++)
     {
+        cout << "Reading camera #" << k << endl;
+        
         BundlerCamera cam;
         fin >> cam.f >> cam.k1 >> cam.k2;
         
         for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
-            fin >> cam.R(i,j);
+        {
+            double d;
+            assert(fin >> d);
+            cout << d << endl;
+            
+            cam.R(i,j) = d;
+        }
         
         for(int i=0; i<3; i++)
         {
-            fin >> cam.R(i,3);
+            double d;
+            assert(fin >> d);
+            cout << d << endl;
+            
+            cam.R(i,3) = d;
             cam.R(3,i) = 0.0f;
         }
         
         cam.R(3,3) = 1.0f;
-        
-        result.push_back(cam);
-        
+
         cout << "Camera " << k << " = " << cam << endl;
+        result.push_back(cam);
     }
+    
+    
+    
+    for(int i=0;;i++)
+    {
+        string s;
+        assert(fin >> s);
+        cout << i << "Got: " << s << endl;
+    }
+    
+    
+
     
     //Parse out point data & calculate bounding box
     box_min = 1e30, box_max = -1e30;
     
     cout << "Reading point data..." << endl;
+
+    
     
     for(int i=0; i<n_points; i++)
     {
