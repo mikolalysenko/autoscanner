@@ -74,6 +74,7 @@ void findBox(
     vec3& box_min,
     vec3& box_max)
 {
+    /*
     box_min = +100.0f;
     box_max = -100.0f;
     
@@ -81,34 +82,26 @@ void findBox(
     {
         vec3 p = points[i];
         
-        //Throw out bad points
-        for(int j=0; j<3; j++)
-        {
-            if( p(j) < -1000 || p(j) > 1000)
-            {
-                goto skip;
-            }
-        }
-        
-        swap(p(0), p(2));
-        
-        
         for(int j=0; j<3; j++)
         {
             box_min(j) = min(box_min(j), p(j));
             box_max(j) = max(box_max(j), p(j));
         }
-        
-        skip: continue;
     }
+    */
     
     /*
     box_min -= 0.1f;
     box_max += 0.1f;
     */
     
+    /*
     box_min -= 5;
     box_max += 5;
+    */
+    
+    box_min = -80;
+    box_max = 80;
 }
 
 //Reads in bundler data
