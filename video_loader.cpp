@@ -100,8 +100,8 @@ void findBox(
     box_max += 5;
     */
     
-    box_min = -80;
-    box_max = 80;
+    box_min = -1;
+    box_max = 1;
 }
 
 //Reads in bundler data

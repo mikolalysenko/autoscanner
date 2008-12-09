@@ -179,16 +179,24 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, floa
 }
 
 void View::writeConsist(const std::string& filename) {
-    IplImage * consistImg = cvCreateImageHeader(cvSize(img->width, img->height), IPL_DEPTH_8U, 1);
-    consistImg->widthStep = img->width;
-    //cout << filename << endl;
-    //Set data pointer
-    consistImg->imageData = (char*)consist_data;
-        
-    //Save image
+    IplImage * consistImg = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U, 3);
+    
+    cvCopyImage(img, consistImg);
+    
+    unsigned char* img_ptr = ((unsigned char*)consistImg->imageData) + 2;
+    unsigned char* consist_ptr = (unsigned char*)consist_data;
+    
+    for(int i=0; i<img->width; i++)
+    for(int j=0; j<img->height; j++)
+    {
+        if(*(consist_ptr++))
+            *img_ptr = 0xff;
+        img_ptr+=3;
+    }
+    
     cvSaveImage(filename.c_str(), consistImg);
-
-    cvReleaseImageHeader(&consistImg);
+    
+    cvReleaseImage(&consistImg);
 }
 
 config View::save(const std::string& name, const std::string& dir) {
@@ -217,7 +225,7 @@ void View::load(config& data) {
 
 void saveTempViews(const std::string& directory, const std::string& filename, std::vector<View*> views) {
     config viewsData("Views");
-    for (int i = 0; i < views.size(); i++) {
+    for (size_t i = 0; i < views.size(); i++) {
         char buf[1024];
         snprintf(buf, 1024, "Camera%04d", i);
         viewsData.set(buf, views[i]->save(buf, directory));        
