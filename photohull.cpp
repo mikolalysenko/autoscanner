@@ -358,7 +358,9 @@ Volume* findHull(
         if (pass % 5 == 2) {
             volume->save("temp/temp");
             for(size_t i=0; i<views.size(); i++) {
-                string fname = "temp/consist"; fname += '0' + i; fname += ".png";
+                char fname[1024];
+                
+                snprintf(fname, 1024, "temp/consist%04d.png", i);
                 views[i]->writeConsist(fname);
             }
         }

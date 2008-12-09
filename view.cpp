@@ -202,8 +202,8 @@ void View::writeConsist(const std::string& filename) {
         img_ptr+=3;
     }
     
-    cvSaveImage(filename.c_str(), consistImg);
     
+    cvSaveImage(filename.c_str(), consistImg);
     cvReleaseImage(&consistImg);
 }
 

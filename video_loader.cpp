@@ -112,8 +112,8 @@ void findBox(
     box_max += 5;
     */
     
-    box_min = vec3(0, 0, 3);
-    box_max = vec3(0.01, 0.01, 3.1);
+    box_min = vec3(-1, -1, 2.4);
+    box_max = vec3(1, 1, 3.6);
 }
 
 //Reads in bundler data
@@ -257,6 +257,7 @@ void fixupBundlerData(vector<IplImage*>& frames, vector<BundlerCamera>& cameras)
             n_failures ++;
         }
     }
+
     
     cout << n_failures << " failures" << endl;
     if(n_failures > 0)
@@ -322,7 +323,7 @@ vector<View*> convertBundlerData(
     for(int i=0; i<4; i++)
         S(i,i) = 1.0f;
     
-    for(int i=0; i<2; i++)
+    for(int i=0; i<3; i++)
     {
         S(i,i) = (box_max(i) - box_min(i)) / (float)grid_dim(i);
         S(i,3) = box_min(i);
