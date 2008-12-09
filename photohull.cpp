@@ -6,6 +6,7 @@
 #include <string>
 
 #include "photohull.h"
+#include "config.h"
 
 using namespace std;
 using namespace blitz;
@@ -213,7 +214,8 @@ bool checkNeighborhood(vector<Neighborhood> &patches)
     
     vec3 sigma = mu1;
     //These values are arbitrary
-    vec3 thresh(5000, 5000, 5000 );
+    vec3 thresh = cfg::config::global.get<vec3>("photohull_threshold");
+
     bool cull1 = sigma(0) > thresh(0), 
         cull2 = sigma(1) > thresh(1),
         cull3 = sigma(2) > thresh(2);
@@ -242,7 +244,6 @@ bool checkConsistency(
     vec3 dn = DN[d], du = DU[d], dv = DV[d];
     
     Cone cone(dn, du, dv, pt);
-    int mark = 0;
     
     //Traverse all views
     for(size_t i=0; i<views.size(); i++)
@@ -303,32 +304,20 @@ bool planeSweep(
          dv = DV[d];
     
     //Initialize p
-    vec3 p = 0.0f;
+    vec3 p = 0.0f, q, r;
     for(int i=0; i<3; i++)
         p(i) = dn(i) < 0 ? bound[i] - 1 : 0;
     
-    for(int i=0; i<si; i++)
-    {        
-        ivec3 q = p;
-        for(int j=0; j<sj; j++)
-        {
-            ivec3 r = q;
-            for(int k=0; k<sk; k++)
-            {
-                if(volume->on_surface(r))
-                {
-                    if(!checkConsistency(views, volume, r, d))
-                    {
-                        (*volume)(r(0), r(1), r(2)) = 0;
-                        removed++;
-                        done = false;
-                    }
-                }
-                r += dv;
+    for(int i=0; i<si; i++, p += dn, q = p) {        
+        for(int j=0; j<sj; j++, q += du, r = q) {
+            for(int k=0; k<sk; k++, r += dv) {
+                if(volume->on_surface(r) && !checkConsistency(views, volume, r, d)) {
+                    (*volume)(r(0), r(1), r(2)) = 0;
+                    removed++;
+                    done = false;
+                }        
             }
-            q += du;
         }
-        p += dn;
     }
 
     return done;
@@ -349,7 +338,7 @@ Volume* findHull(
     
     int pass = 1; int num_removed;
 
-    visualHull(volume, views);
+    //visualHull(volume, views);
     while(true)
     {
         num_removed = 0;
@@ -366,7 +355,7 @@ Volume* findHull(
         //Unimplemented
 
         //Save intermediate results for debugging
-        if (pass % 3 == 2) {
+        if (pass % 5 == 2) {
             volume->save("temp/temp");
             for(size_t i=0; i<views.size(); i++) {
                 string fname = "temp/consist"; fname += '0' + i; fname += ".png";

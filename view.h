@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <string>
 #include "misc.h"
+#include "config.h"
+
+using namespace cfg;
 
 //A camera view
 struct View
@@ -25,6 +28,7 @@ struct View
     //Constructs a view
     View(IplImage *img_, mat44 cam_, mat44 cam_inv_, vec3 center_);
     View(IplImage *img_, mat44 K, mat44 R, mat44 S);
+    View(config& cfg);
     
     //Reads
     vec3 readPixel(int ix, int iy) const;
@@ -49,14 +53,17 @@ struct View
     void resetConsist() { std::fill(consist_data, consist_data + img->width * img->height, 0); }
 
     void writeConsist(const std::string& filename);
+    
+    config save(const std::string& name, const std::string& dir);
+    void load(config& data);
 };
 
 //Loads a view set from file (using Stanford format)
-std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box, float focal_length);
+std::vector<View*>  loadViews(const char* filename, vec3 lo, vec3 hi, ivec3 box, float focal_length = 1);
 
 //Saves a pile of views to an interchange format
-void saveTempViews(const char * directory, std::vector<View*> views);
-std::vector<View*> loadTempViews(const char* directory);
+void saveTempViews(const std::string& directory, const std::string& filename, std::vector<View*> views);
+std::vector<View*> loadTempViews(const std::string& filename);
 
 //Save cameras to PLY
 void saveCameraPLY(const char * filename, std::vector<View*> views);

@@ -1,6 +1,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -64,7 +65,6 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
 {
     assert(img != NULL);
     
-    //Apply filters (this is very tweaky)
     img = pic;
     
     //Create data
@@ -72,9 +72,9 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     
     //Calculate camera matrices
     cam = mmult(K, mmult(R, S));
-    //cam_inv = inverse(cam);
+    cam_inv = inverse(cam);
     
-    cam_inv = inverse(mmult(R, S));
+    //cam_inv = inverse(mmult(R, S));
     
     //Compute optical center
     center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
@@ -191,140 +191,74 @@ void View::writeConsist(const std::string& filename) {
     cvReleaseImageHeader(&consistImg);
 }
 
+config View::save(const std::string& name, const std::string& dir) {
+    config data(name);
+    data.set("cam", cam);
+    data.set("cam_inv", cam_inv);
+    data.set("center", center);
+    std::string img_filename(dir + name + ".png");
+    data.set("img_filename", img_filename);
+    cvSaveImage(img_filename.c_str(), img);
 
+    data.save("temp.cfg");
 
-//Saves a pile of views to an interchange format
-void saveTempViews(const char * directory, std::vector<View*> views)
-{
-    mkdir(directory, 0777);
-    
-    ofstream fout((string(directory) + "/list.txt").c_str());
-    
-    fout.setf(ios::scientific);
-    
-    fout << views.size() << endl;
-    
-    for(size_t n=0; n<views.size(); n++)
-    {
-        char name[1024];
-        snprintf(name, 1024, "%s/frame%04d.tif", directory, n);
-        fout << name << " ";
-        
-        cvSaveImage(name, views[n]->img);
-        
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-        {
-            fout << views[n]->cam(i,j) << " ";
-        }
-        
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-        {
-            fout << views[n]->cam_inv(i,j) << " ";
-        }
-        
-        for(int i=0; i<3; i++)
-        {
-            fout << views[n]->center(i) << " ";
-        }
-        
-        fout << endl;
-    }
+    return data;
+}
+
+void View::load(config& data) {
+    cam = data.get("cam", cam);
+    cam_inv = data.get("cam_inv", cam_inv);
+    center = data.get("center", center);
+    std::string filename = data.get("img_filename", filename);
+    img = cvLoadImage(filename.c_str());    
+    consist_data = (char*)malloc(img->width * img->height);
 }
 
 
-std::vector<View*> loadTempViews(const char* directory)
-{
-    ifstream fin((string(directory) + "/list.txt").c_str());
-    
-    size_t n_views;
-    fin >> n_views;
-    
-    vector<View*> result;
-    
-    for(size_t i=0; i<n_views; i++)
-    {
-        string filename;
-        fin >> filename;
-        
-        IplImage * img = cvLoadImage(filename.c_str());
-        
-        mat44 cam, cam_inv;
-        vec3 center;
-        
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-        {
-            fin >> cam(i,j);
-        }
-        
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-        {
-            fin >> cam_inv(i,j);
-        }
-        
-        for(int i=0; i<3; i++)
-        {
-            fin >> center(i);
-        }
-        
-        result.push_back(new View(img, cam, cam_inv, center));
+void saveTempViews(const std::string& directory, const std::string& filename, std::vector<View*> views) {
+    config viewsData("Views");
+    for (int i = 0; i < views.size(); i++) {
+        std::string name("Camera00");
+        stringstream buf;
+        buf << i; name += buf.str();
+        viewsData.set(name, views[i]->save(name, directory));        
     }
-    
-    return result;
+
+    viewsData.save(directory + filename);
+}
+
+View::View(config& cfg) {
+    load(cfg);
+}
+
+std::vector<View*> loadTempViews(const std::string& filename) {    
+    cout << filename << " ---- " << endl;
+    config viewsData("Views");
+    viewsData.load(filename);
+    std::vector<View*> out;
+    for (config::child_map::iterator iter = viewsData.childBegin(); 
+            iter != viewsData.childEnd(); iter++) {
+        out.push_back(new View(iter->second));
+    }
+    return out;
 }
 
 void saveCameraPLY(const char * file, vector<View*> views)
 {
-    ofstream fout((string(file) + "-o.ply").c_str(), ios_base::out | ios_base::trunc);
+    std::string filename(file); filename += ".ply";
 
-    fout << "ply" << endl;
-    fout << "format ascii 1.0" << endl;
-    fout << "comment output from autoscanner" << endl;
-    fout << "element vertex " << (1 + 10) * views.size() << endl;
-    fout << "property float x" << endl;
-    fout << "property float y" << endl;
-    fout << "property float z" << endl;
-    fout << "end_header" << endl;
+    vector<vec3> points;
 
     
     for(size_t i=0; i<views.size(); i++)
     {
-        fout << views[i]->center(0) << " "
-             << views[i]->center(1) << " "
-             << views[i]->center(2) << endl;
+        points.push_back(views[i]->center);
         
         for(float t=0.0f; t<=1.0; t+=0.1)
         {
-            vec3 p = hgmult(views[i]->cam_inv, vec3(0,0,t));
-            
-            fout << p(0) << " "
-                 << p(1) << " "
-                 << p(2) << endl;
+            vec3 p = hgmult(views[i]->cam_inv, vec3(0,0,t));            
+            points.push_back(p);
         }
-
-        /*
-        for(float t=0.0f; t<=1.0; t+=0.25)
-        {
-            vec3 p = hgmult(views[i]->cam_inv, vec3(0,t,0));
-            
-            fout << p(0) << " "
-                 << p(1) << " "
-                 << p(2) << endl;
-        }
-        
-        for(float t=0.0f; t<=1.0; t+=0.333)
-        {
-            vec3 p = hgmult(views[i]->cam_inv, vec3(t,0,0));
-            
-            fout << p(0) << " "
-                 << p(1) << " "
-                 << p(2) << endl;
-        }
-        */
-
     }
 }
 

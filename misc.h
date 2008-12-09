@@ -3,14 +3,20 @@
 
 //STL
 #include <utility>
+#include <vector>
+#include <string>
 
 //Blitz++
 #include <blitz/tinyvec.h>
 #include <blitz/tinymat.h>
 
+
+
+
 //OpenCV Headers
 #ifdef __APPLE__
 #  include <OpenCV/OpenCV.h>
+
 
 //Min/max are missing from STL utility (wtf mac?)
 namespace std
@@ -70,6 +76,8 @@ extern float len(const vec3& v);
 
 //Retrieves temporary directory
 extern char * getTempDirectory();
+
+extern void savePly(const std::string& filename, const std::vector<vec3>& points);
 
 
 #endif
