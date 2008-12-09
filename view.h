@@ -21,13 +21,15 @@ struct View
     
     //Camera calibration data
     mat44 cam, cam_inv;
+
+    mat44 K, R, S;
     
     //Camera center
     vec3 center;
     
     //Constructs a view
     View(IplImage *img_, mat44 cam_, mat44 cam_inv_, vec3 center_);
-    View(IplImage *img_, mat44 K, mat44 R, mat44 S);
+    View(IplImage *img_, mat44 K_, mat44 R_, mat44 S_);
     View(config& cfg);
     
     //Reads
@@ -56,6 +58,9 @@ struct View
     
     config save(const std::string& name, const std::string& dir);
     void load(config& data);
+
+private:
+    void init(mat44 K_, mat44 R_, mat44 S_);
 };
 
 //Loads a view set from file (using Stanford format)
