@@ -62,7 +62,6 @@ int main(int argc, char** argv)
 
         vec3 low, high;
         //vector<View*> frames = loadVideo("mvi_0877.avi", ivec3(SIZE, SIZE, SIZE), low, high);
-        /*
         vector<View*> frames = loadTempBundleData(
             "test_bundle3",
             ivec3(SIZE, SIZE, SIZE),
@@ -75,17 +74,11 @@ int main(int argc, char** argv)
              
         //Save camera positions
         saveCameraPLY("cameras.ply", frames);
-        */
-        
-        vector<View*> frames = loadTempViews("temp_views");
-        
-        low = vec3(-1, -1, 2.4);
-        high = vec3(1, 1, 3.6);
         
         Volume * hull = findHull(frames, 
             SIZE,SIZE,SIZE,
             low, high);
-        
+    
         hull->save("test/test");
         
 	return 0;
