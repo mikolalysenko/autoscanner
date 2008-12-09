@@ -17,6 +17,18 @@ using namespace blitz;
 //Path to bundler script
 const char* bundler_path = "/home/mikola/Projects/autoscanner/bundler/RunBundler.sh";
 
+
+//Debugging stuff, needed to check for camera parameter correctness
+struct PointImage
+{
+    int camera, key;
+    float x, y;
+};
+
+vector<vec3> points;
+vector< vector<PointImage> > point_images;
+
+
 //Camera produced by bundler
 struct BundlerCamera
 {
@@ -100,8 +112,8 @@ void findBox(
     box_max += 5;
     */
     
-    box_min = -1;
-    box_max = 1;
+    box_min = vec3(0, 0, 3);
+    box_max = vec3(0.01, 0.01, 3.1);
 }
 
 //Reads in bundler data
@@ -168,7 +180,7 @@ vector<BundlerCamera> readBundlerData(
     }
         
     //Parse out point data & calculate bounding box
-    vector<vec3> points;
+    //vector<vec3> points;
     
     cout << "Reading point data..." << endl;
     for(int i=0; i<n_points; i++)
@@ -189,16 +201,17 @@ vector<BundlerCamera> readBundlerData(
         //Read in visible locations
         int n_views;
         fin >> n_views;
+        
+        vector<PointImage> p_images;
         for(int j=0; j<n_views; j++)
         {
-            int v, k;           //Camera, feature point
-            float x, y;         //x-y pixel coordinates
-            
-            fin >> v >> k >> x >> y;
+            PointImage pi;
+            fin >> pi.camera >> pi.key >> pi.x >> pi.y;
+            p_images.push_back(pi);
         }
-        cout << endl;
-
         points.push_back(p);
+        point_images.push_back(p_images);
+        
     }
     
     //Calculate bounding box
@@ -227,7 +240,9 @@ void fixupBundlerData(vector<IplImage*>& frames, vector<BundlerCamera>& cameras)
             len(vec3(
                 cameras[i].R(0,3),
                 cameras[i].R(1,3),
-                cameras[i].R(2,3))) > 30.0f)
+                cameras[i].R(2,3))) > 30.0f ||
+            cameras[i].f < 100 ||
+            cameras[i].f > 2000)
         {
             cout << "Singular matrix for camera " << i << ", D = " << d << endl
                 << "cam = " << cameras[i] << endl;
@@ -236,11 +251,9 @@ void fixupBundlerData(vector<IplImage*>& frames, vector<BundlerCamera>& cameras)
             cvReleaseImage(&frames[i]);
             
             //Resize vectors
-            cameras[i] = cameras[cameras.size()-1];
-            frames[i] = frames[frames.size()-1];
-            cameras.resize(cameras.size()-1);
-            frames.resize(frames.size()-1);
-            
+            cameras.erase(cameras.begin() + i);
+            frames.erase(frames.begin() + i);
+
             n_failures ++;
         }
     }
@@ -293,15 +306,6 @@ vector<BundlerCamera> runBundler(
     return result;
 }
 
-
-//Undistorts image from k1 - k2
-IplImage * unwarp(IplImage * img, float k1, float k2)
-{
-    //Not yet implemented.  Need to read OpenCV documentation
-    return img;
-}
-
-
 //Converts bundler formatted data + pictures to camera data
 vector<View*> convertBundlerData(
     vector<IplImage*> frames,
@@ -341,30 +345,46 @@ vector<View*> convertBundlerData(
             K(i,j) = 0.0f;
         for(int i=0; i<4; i++)
             K(i,i) = 1.0f;
+        K(1,1) = -1.0f;
         K(0,3) = frames[n]->width/2.0f;
         K(1,3) = frames[n]->height/2.0f;
         
-        /*
         //Construct perspective warping matrix
         mat44 P;
         for(int i=0; i<4; i++)
         for(int j=0; j<4; j++)
             P(i,j) = 0.0f;
-        for(int i=0; i<4; i++)
-            P(i,i) = 1.0f;
-        P(3,3) = -1.0f;
+        
+        P(0,0) = -cameras[n].f;
+        P(1,1) = -cameras[n].f;
+        P(2,3) = 1.0f;
         P(3,2) = 1.0f;
         K = mmult(K, P);
-        */
         
         cout << "K = " << K << endl;
         
         //Undistort cameras
         views.push_back(new View(
-            unwarp(frames[n], cameras[n].k1, cameras[n].k2), 
+            frames[n], 
             K, 
             cameras[n].R, 
             S));
+            
+         /*   
+        //Check point images
+        for(int i=0; i<point_images.size(); i++)
+        for(int j=0; j<point_images[i].size(); j++)
+        {
+            PointImage pi = point_images[i][j];
+            
+            if(pi.camera == n)
+            {
+                cout << "p: " << points[i] << endl
+                     << "p': " << hgmult(mmult(K, cameras[n].R), points[i]) << endl
+                     << "correct: " << pi.x << ", " << pi.y << endl;
+            }
+        }
+        */
     }
     
     return views;
