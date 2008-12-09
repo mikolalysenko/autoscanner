@@ -37,6 +37,26 @@ void threshold(IplImage * img)
     }
 }
 
+void View::init(mat44 K_, mat44 R_, mat44 S_) {
+    K = K_; R = R_; S = S_;
+    //Calculate camera matrices
+    cam = mmult(K, mmult(R, S));
+
+    //cam_inv = inverse(cam);    
+    //cam_inv = inverse(mmult(R, S));
+    
+    //Compute optical center
+    center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
+
+    //Debug spam
+    cout << "Camera: " << cam << endl
+         << "K = " << K << endl
+         << "R = " << R << endl
+         << "S = " << S << endl
+         << "CamInv: " << cam_inv << endl
+         << "Center = " << center << endl;
+}
+
 //View constructor
 View::View(IplImage * pic, mat44 cam_, mat44 cam_inv_, vec3 center_)
 {
@@ -61,7 +81,7 @@ View::View(IplImage * pic, mat44 cam_, mat44 cam_inv_, vec3 center_)
 }
 
 //View constructor
-View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
+View::View(IplImage * pic, mat44 K_, mat44 R_, mat44 S_)
 {
     assert(img != NULL);
     
@@ -69,23 +89,9 @@ View::View(IplImage * pic, mat44 K, mat44 R, mat44 S)
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
-    
-    //Calculate camera matrices
-    cam = mmult(K, mmult(R, S));
-    cam_inv = inverse(cam);
-    
-    //cam_inv = inverse(mmult(R, S));
-    
-    //Compute optical center
-    center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
 
-    //Debug spam
-    cout << "Camera: " << cam << endl
-         << "K = " << K << endl
-         << "R = " << R << endl
-         << "S = " << S << endl
-         << "CamInv: " << cam_inv << endl
-         << "Center = " << center << endl;
+    init(K_,R_,S_);   
+    
 }
 
 
@@ -157,7 +163,8 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, floa
         //Fix up matrix
         K(0,3) = K(0,2);
         K(1,3) = K(1,2);
-        K(0,2) = K(1,2) = 0.0f;
+        K(0,2) = K(1,2) = 0.0f;
+
         
         //Apply focal distance matrix
         mat44 focal;
@@ -179,6 +186,7 @@ vector<View*> loadViews(const char * filename, vec3 lo, vec3 hi, ivec3 box, floa
 }
 
 void View::writeConsist(const std::string& filename) {
+
     IplImage * consistImg = cvCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U, 3);
     
     cvCopyImage(img, consistImg);
@@ -207,16 +215,35 @@ config View::save(const std::string& name, const std::string& dir) {
     std::string img_filename(dir + name + ".tif");
     data.set("img_filename", img_filename);
     cvSaveImage(img_filename.c_str(), img);
-
-    data.save("temp.cfg");
-
+    data.set("K", K);
+    data.set("R", R);
     return data;
 }
 
 void View::load(config& data) {
-    cam = data.get("cam", cam);
-    cam_inv = data.get("cam_inv", cam_inv);
-    center = data.get("center", center);
+    mat44 K_, R_, S_;
+    K_ = data.get("K", K_);
+    R_ = data.get("R", R_);
+
+
+    vec3 lo, hi; ivec3 box;
+    int size = config::global.get<int>("volume_resolution");
+    box = size;
+    
+    lo = config::global.get<vec3>("low");
+    hi = config::global.get<vec3>("high");
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+        S_(i,j) = 0;
+    for(int i=0; i<3; i++)
+        S_(i,i) = (hi(i) - lo(i)) / (float)(box(i) - 1);
+    S_(3,3) = 1.0f;
+    for(int i=0; i<3; i++)
+        S_(i,3) = lo(i);
+
+    init(K_,R_,S_);   
+    
+    
     std::string filename = data.get("img_filename", filename);
     img = cvLoadImage(filename.c_str());    
     consist_data = (char*)malloc(img->width * img->height);
@@ -225,6 +252,7 @@ void View::load(config& data) {
 
 void saveTempViews(const std::string& directory, const std::string& filename, std::vector<View*> views) {
     config viewsData("Views");
+
     for (size_t i = 0; i < views.size(); i++) {
         char buf[1024];
         snprintf(buf, 1024, "Camera%04d", i);

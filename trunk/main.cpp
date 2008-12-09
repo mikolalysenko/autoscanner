@@ -25,12 +25,8 @@ int main(int argc, char** argv)
 {
     config::global.load("autoscanner.cfg");
 
-    cout << " 0 " << endl;
-    cout << config::global.get<std::string>("config_file") << endl;
     config::global.load(config::global.get<std::string>("config_file"));
     
-    cout << " 1 " << endl;
-
     vec3 low, high;
     low = config::global.get("low", low);
     high = config::global.get("high", high);
@@ -39,16 +35,15 @@ int main(int argc, char** argv)
     //kutu = loadKutulakisCameras("gargoyle/", "camerafiles.cfg", low, high, ivec3(SIZE, SIZE, SIZE));
     //kutu.save("kutu.cfg");
 
-	//vector<View*> views = loadTempViews(config::global.get<std::string>("views_file"));
+	vector<View*> views = loadTempViews(config::global.get<std::string>("views_file"));
 
-    cout << " here " << endl;
-    
+    /*
 	vector<View*> views = loadViews("templeR/templeR_par.txt", 
 		low, 
 		high,
 		ivec3(size, size, size));
-    //saveTempViews("templeR/", "temple_cams.cfg", views);
-
+    saveTempViews("templeR/", "temple_cams.cfg", views);
+*/
 
     vec3 bgcolors[] = {
         ivec3(0,255,0),
