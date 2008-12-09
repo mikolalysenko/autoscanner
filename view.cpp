@@ -196,7 +196,7 @@ config View::save(const std::string& name, const std::string& dir) {
     data.set("cam", cam);
     data.set("cam_inv", cam_inv);
     data.set("center", center);
-    std::string img_filename(dir + name + ".png");
+    std::string img_filename(dir + name + ".tif");
     data.set("img_filename", img_filename);
     cvSaveImage(img_filename.c_str(), img);
 
@@ -218,10 +218,9 @@ void View::load(config& data) {
 void saveTempViews(const std::string& directory, const std::string& filename, std::vector<View*> views) {
     config viewsData("Views");
     for (int i = 0; i < views.size(); i++) {
-        std::string name("Camera00");
-        stringstream buf;
-        buf << i; name += buf.str();
-        viewsData.set(name, views[i]->save(name, directory));        
+        char buf[1024];
+        snprintf(buf, 1024, "Camera%04d", i);
+        viewsData.set(buf, views[i]->save(buf, directory));        
     }
 
     viewsData.save(directory + filename);

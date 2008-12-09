@@ -17,6 +17,8 @@
 #include "photohull.h"
 #include "volume_cuts.h"
 #include "video_loader.h"
+#include "config.h"
+#include "kutulakis.h"
 
 //Namespace aliasing
 using namespace std;
@@ -55,7 +57,9 @@ int main(int argc, char** argv)
 	cout << "Saving..." << endl;
 	volume->save("test/test");
     */
-    
+        config::global.load("autoscanner.cfg");
+        config::global.load(config::global.get<std::string>("config_file"));
+
         vec3 low, high;
         //vector<View*> frames = loadVideo("mvi_0877.avi", ivec3(SIZE, SIZE, SIZE), low, high);
         
@@ -64,7 +68,7 @@ int main(int argc, char** argv)
             ivec3(SIZE, SIZE, SIZE),
             low, high);
         
-        saveTempViews("temp_views", frames);
+        saveTempViews("temp_views/", "list", frames);
         
         cout << "low = " << low << endl
              << "high = " << high << endl;
