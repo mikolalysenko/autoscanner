@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cmath>
+#include <string>
+#include <fstream>
 
 #include "misc.h"
 
@@ -124,4 +126,26 @@ vec3 hgmult(const mat44& a, const vec3& b)
     
     return vec3(r(0) / r(3), r(1) / r(3), r(2) / r(3));
 }
+
+void savePly(const string& filename, const vector<vec3>& points) {
+    typedef const vector<vec3> pointVector;
+    
+    ofstream fout(filename.c_str(), ios_base::out | ios_base::trunc);
+
+    fout << "ply" << endl;
+    fout << "format ascii 1.0" << endl;
+    fout << "comment output from autoscanner" << endl;
+    fout << "element vertex " << points.size() << endl;
+    fout << "property float x" << endl;
+    fout << "property float y" << endl;
+    fout << "property float z" << endl;
+    fout << "end_header" << endl;
+
+    for (pointVector::const_iterator iter = points.begin(); iter != points.end(); iter++)
+        fout << (*iter)(0) << " " << (*iter)(1) << " " << (*iter)(2) << endl;
+
+    fout.close();
+
+}
+
 

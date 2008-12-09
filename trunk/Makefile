@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp
+SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp config.cpp kutulakis.cpp
 
 DEPENDS  = $(SOURCES:.cpp=.d)
 OBJECTS  = $(SOURCES:.cpp=.o)

@@ -7,6 +7,7 @@
 #include <cstring>
 #include <sstream>
 #include <fstream>
+#include <vector>
 
 //Project
 #include "misc.h"
@@ -50,27 +51,13 @@ void Volume::save(const char * file) const
 }
 
 void Volume::savePly(const std::string& file) const {
-    int num_vertices = 0;
-    for (size_t x = 0; x < xRes; x++)
-    for (size_t y = 0; y < yRes; y++)
-    for (size_t z = 0; z < zRes; z++)
-        num_vertices += on_surface(x, y, z);
+    std::string filename = file + "-o.ply";
 
     ifstream fin((file + "-o.ply").c_str());
     ofstream fbout((file + "-o2.ply").c_str(), ios_base::out | ios_base::trunc);
+    fbout << fin.rdbuf() << endl; fin.close(); fbout.close();
 
-    fbout << fin.rdbuf() << endl;
-
-    ofstream fout((file + "-o.ply").c_str(), ios_base::out | ios_base::trunc);
-
-    fout << "ply" << endl;
-    fout << "format ascii 1.0" << endl;
-    fout << "comment output from autoscanner" << endl;
-    fout << "element vertex " << num_vertices << endl;
-    fout << "property float x" << endl;
-    fout << "property float y" << endl;
-    fout << "property float z" << endl;
-    fout << "end_header" << endl;
+    std::vector<vec3> points;
 
     for (size_t x = 0; x < xRes; x++)
     for (size_t y = 0; y < yRes; y++)
@@ -81,12 +68,11 @@ void Volume::savePly(const std::string& file) const {
                 (double)y + drand48(),
                 (double)z + drand48());
             
-            fout << pos(0) << " " << pos(1) << " " << pos(2) << endl;
+            points.push_back(pos);
         }
     }
-
-    fout.flush();
     
+    ::savePly(filename, points);
 }
 
 
