@@ -23,7 +23,7 @@
 //Namespace aliasing
 using namespace std;
 
-#define SIZE 	128
+//#define SIZE 	128
 
 //Program start point
 int main(int argc, char** argv)
@@ -57,15 +57,46 @@ int main(int argc, char** argv)
 	cout << "Saving..." << endl;
 	volume->save("test/test");
     */
+    
         config::global.load("autoscanner.cfg");
         config::global.load(config::global.get<std::string>("config_file"));
 
         vec3 low, high;
-        //vector<View*> frames = loadVideo("mvi_0877.avi", ivec3(SIZE, SIZE, SIZE), low, high);
+        low = config::global.get("low", low);
+        high = config::global.get("high", high);
+        
+        int size = config::global.get<int>("volume_resolution");
+        
+        //vector<View*> frames = loadVideo("mvi_0883.avi", ivec3(size, size, size), low, high);
+        
         vector<View*> frames = loadTempBundleData(
-            "test_bundle3",
-            ivec3(SIZE, SIZE, SIZE),
+            "data/sai3",
+            ivec3(size, size, size),
             low, high);
+            
+            
+        for(int i=frames.size()-1; i>=0; i--)
+        {
+            if(frames[i]->center(0) > 0)
+                frames.erase(frames.begin()+i, frames.begin()+i+1);
+        }
+        
+        
+        /*
+        vector<View*> frames = loadTempBundleData(
+            "data/sai2",
+            ivec3(size, size, size),
+            low, high);
+        
+        frames.erase(frames.begin() + 33, frames.end());
+        frames.erase(frames.begin(), frames.begin() + 3);
+        */
+        
+        /*
+        //Remove bad frames
+        frames.erase(frames.begin() + 8, frames.begin() + 16);
+        frames.erase(frames.begin(), frames.begin() + 2);
+        */
         
         saveTempViews("temp_views/", "list", frames);
         
@@ -76,7 +107,7 @@ int main(int argc, char** argv)
         saveCameraPLY("cameras.ply", frames);
         
         Volume * hull = findHull(frames, 
-            SIZE,SIZE,SIZE,
+            size,size,size,
             low, high);
     
         hull->save("test/test");

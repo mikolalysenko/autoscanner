@@ -12,7 +12,7 @@ using namespace std;
 using namespace blitz;
 
 //Sample every X frames
-#define FRAMES_PER_SAMPLE       30
+#define FRAMES_PER_SAMPLE       15
 
 //Path to bundler script
 const char* bundler_path = "/home/mikola/Projects/autoscanner/bundler/RunBundler.sh";
@@ -111,9 +111,10 @@ void findBox(
     box_min -= 5;
     box_max += 5;
     */
-    
+    /*
     box_min = vec3(-1, -1, 2.4);
     box_max = vec3(1, 1, 3.6);
+    */
 }
 
 //Reads in bundler data

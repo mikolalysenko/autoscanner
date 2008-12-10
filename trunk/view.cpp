@@ -17,6 +17,8 @@
 using namespace std;
 using namespace blitz;
 
+#define FILL_THRESHOLD          60
+
 //Does some thresholding on the input image
 void threshold(IplImage * img)
 {
@@ -37,13 +39,66 @@ void threshold(IplImage * img)
     }
 }
 
+
+void fill_rec(
+    IplImage * img, 
+    ivec3 fill_c,
+    ivec3 base_c,
+    int x, int y)
+{
+    if(x < 0 || x >= img->width || y < 0 || y >= img->height)
+        return;
+    
+    int idx = 3 * (x + y * img->width);
+    
+    bool eq = true;
+    ivec3 c;
+    
+    for(int i=0; i<3; i++)
+    {
+        c(i) = (unsigned char)img->imageData[idx + i];
+        eq &= c(i) == fill_c(i);
+    }
+    
+    if(eq) return;
+    
+    c -= base_c;
+    
+    if(len(c) <= FILL_THRESHOLD)
+    {
+        for(int i=0; i<3; i++)
+            ((unsigned char*)img->imageData)[idx + i] = fill_c(i);
+        
+        for(int dx=-2; dx<=2; dx++)
+        for(int dy=-2; dy<=2; dy++)
+        {
+            fill_rec(img, fill_c, base_c, x+dx, y+dy);
+        }
+    }
+}
+
+
+void fill_hack(IplImage * img)
+{
+    ivec3 fill_c = ivec3(rand() % 256, rand() % 256, rand() % 256);
+    
+    for(int x=0; x<img->width; x++)
+        fill_rec(img, 
+            fill_c,
+            ivec3((unsigned char)img->imageData[3*x], 
+                (unsigned char)img->imageData[3*x + 1], 
+                (unsigned char)img->imageData[3*x + 2]),
+            x, 0);
+}
+
+
 void View::init(mat44 K_, mat44 R_, mat44 S_) {
     K = K_; R = R_; S = S_;
     //Calculate camera matrices
     cam = mmult(K, mmult(R, S));
 
-    //cam_inv = inverse(cam);    
-    //cam_inv = inverse(mmult(R, S));
+    //Needed for view saving
+    cam_inv = inverse(mmult(R, S));
     
     //Compute optical center
     center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
@@ -63,7 +118,9 @@ View::View(IplImage * pic, mat44 cam_, mat44 cam_inv_, vec3 center_)
     assert(img != NULL);
     
     //Apply filters (this is very tweaky)
-    img = pic;    
+    img = pic;
+    
+    fill_hack(img);
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
@@ -86,6 +143,7 @@ View::View(IplImage * pic, mat44 K_, mat44 R_, mat44 S_)
     assert(img != NULL);
     
     img = pic;
+    fill_hack(pic);
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
@@ -280,11 +338,10 @@ std::vector<View*> loadTempViews(const std::string& filename) {
 
 void saveCameraPLY(const char * file, vector<View*> views)
 {
-    std::string filename(file); filename += ".ply";
+    std::string filename(file);
 
     vector<vec3> points;
 
-    
     for(size_t i=0; i<views.size(); i++)
     {
         points.push_back(views[i]->center);
@@ -295,5 +352,8 @@ void saveCameraPLY(const char * file, vector<View*> views)
             points.push_back(p);
         }
     }
+    
+    //Save points to PLY file
+    savePly(filename, points);
 }
 
