@@ -77,7 +77,7 @@ extern float len(const vec3& v);
 //Retrieves temporary directory
 extern char * getTempDirectory();
 
-extern void savePly(const std::string& filename, const std::vector<vec3>& points);
+extern void savePly(const std::string& filename, const std::vector<vec3>& points, const std::vector<ivec3>& colors);
 
 
 #endif

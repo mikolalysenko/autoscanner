@@ -21,6 +21,8 @@ Volume::Volume(size_t x, size_t y, size_t z, vec3 l, vec3 h) :
     xRes(x), yRes(y), zRes(z), low(l), high(h)
 {
     data = new unsigned char[xRes * yRes * zRes];
+    color = new unsigned char[3 * xRes * yRes * zRes];
+
     memset(data, 0, xRes * yRes * zRes);
 }
 
@@ -47,10 +49,10 @@ void Volume::save(const char * file) const
     //Release image header
     cvReleaseImageHeader(&img);
 
-    savePly(file);
+   // savePly(file);
 }
 
-void Volume::savePly(const std::string& file) const {
+void Volume::savePly(const std::string& file, const vector<View*> views) const {
     std::string filename = file + "-o.ply";
 
     ifstream fin((file + "-o.ply").c_str());
@@ -58,21 +60,29 @@ void Volume::savePly(const std::string& file) const {
     fbout << fin.rdbuf() << endl; fin.close(); fbout.close();
 
     std::vector<vec3> points;
+    std::vector<ivec3> colors;
 
     for (size_t x = 0; x < xRes; x++)
     for (size_t y = 0; y < yRes; y++)
     for (size_t z = 0; z < zRes; z++) {
-        if (on_surface(x, y, z) != 0) {
+        if (near_surface(x, y, z) != 0) {
             vec3 pos = pos_3d(
                 (double)x + drand48(),
                 (double)y + drand48(),
                 (double)z + drand48());
+
+            unsigned char* pix = pixel(x, y, z);
+
+            cout << pix[0] << " " << pix[1] << " " << pix[2] << endl;
+            
+            ivec3 color; for (int c = 0; c < 3; c++) color[c] = pix[c];
             
             points.push_back(pos);
+            colors.push_back(color);
         }
     }
     
-    ::savePly(filename, points);
+    ::savePly(filename, points, colors);
 }
 
 
@@ -135,6 +145,26 @@ bool Volume::on_surface(int ix, int iy, int iz) const {
         (*this)(ix, iy-1, iz) &&
         (*this)(ix, iy, iz+1) &&
         (*this)(ix, iy, iz-1));
+}
+
+bool Volume::exterior(int ix, int iy, int iz) const {
+    return !(*this)(ix, iy, iz);
+}
+
+bool Volume::near_surface(int ix, int iy, int iz) const {
+    if (exterior(ix,iy,iz)) return false;
+    int offset[8][3] = {
+        {3,0,0},
+        {-3,0,0},
+        {0,3,0},
+        {0,-3,0},
+        {0,0,3},
+        {0,0,-3}};
+    for (int i = 0; i < 6; i++) {
+        if (exterior(ix + offset[i][0], iy + offset[i][1], iz + offset[i][2])) return true;
+    }
+    return false;
+
 }
 
 vec3 Volume::pos_3d(int x, int y, int z) const {

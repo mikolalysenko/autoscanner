@@ -161,7 +161,7 @@ vec3 View::readPixel(int ix, int iy) const
     iy = min(max(iy, 0), img->height - 1);
     
     //Read from image
-    unsigned char * ptr = reinterpret_cast<unsigned char*>(&img->imageData[3 * (ix + iy * img->width)]);
+    unsigned char * ptr = reinterpret_cast<unsigned char*>(&img->imageData[3 * (ix ) + iy * img->widthStep]);
     
     //Convert pixel coordinates
     return vec3(ptr[0], ptr[1], ptr[2]);
@@ -315,6 +315,7 @@ void saveTempViews(const std::string& directory, const std::string& filename, st
         char buf[1024];
         snprintf(buf, 1024, "Camera%04d", i);
         viewsData.set(buf, views[i]->save(buf, directory));        
+
     }
 
     viewsData.save(directory + filename);
