@@ -7,6 +7,7 @@
 
 #include "photohull.h"
 #include "config.h"
+#include "consistency.h"
 
 using namespace std;
 using namespace blitz;
@@ -48,104 +49,19 @@ const int N_DIM[6] = { 2, 2, 0, 0, 1, 1, },
           U_DIM[6] = { 1, 1, 1, 1, 0, 0, },
           V_DIM[6] = { 0, 0, 2, 2, 2, 2, };
 
-struct Cone
-{
-    vec4 cone[4];
 
-    Cone(vec3 dn, vec3 du, vec3 dv, vec3 pt) {
-        cone[0] = cone[1] = cone[2] = cone[3] = vec4(dn(0), dn(1), dn(2), 0);
-        
-        cone[0] += vec4(du(0), du(1), du(2), 0);
-        cone[1] -= vec4(du(0), du(1), du(2), 0);
-        cone[2] += vec4(dv(0), dv(1), dv(2), 0);
-        cone[3] -= vec4(dv(0), dv(1), dv(2), 0);
-        
-        for(int i=0; i<4; i++)
-        {
-            cone[i](3) = -(cone[i](0) * pt(0) + 
-                           cone[i](1) * pt(1) +
-                           cone[i](2) * pt(2));
-        }
-    }
-
-    bool contains(vec3 pt) {
-        for(int j=0; j<4; j++)
-        {
-            double d = 
-                cone[j](0) * pt(0) +
-                cone[j](1) * pt(1) +
-                cone[j](2) * pt(2) +
-                cone[j][3];
-            
-            if(d > 0.0f)
-                return false;
-        }
-    }
-
-};
-
-struct VoxelProjection
-{
-    View* view;
-    double verts[2][8];
-    int x_min, x_max, y_min, y_max;
-
-    static void clamp(int& v, int min, int max) {
-        v = v < min ? min : v > max ? max : v;
-    }
-
-    VoxelProjection(View* v, vec3 pt) : view(v) {
-        vec3 offset[8] = {
-            vec3(0, 0, 0),
-            vec3(1, 0, 0),
-            vec3(0, 1, 0),
-            vec3(0, 0, 1),
-            vec3(0, 1, 1),
-            vec3(1, 0, 1),
-            vec3(1, 1, 0),
-            vec3(1, 1, 1)
-            };
-        for (int i = 0; i < 8; i++) {
-            vec3 v = pt; v += offset[i];
-            vec3 proj = hgmult(view->cam, v);
-            verts[0][i] = proj(0); verts[1][i] = proj(1);
-        }
-        int pad = 0;
-        x_min = * min_element(verts[0], verts[0] + 8) - pad;
-        y_min = * min_element(verts[1], verts[1] + 8) - pad;
-        x_max = * max_element(verts[0], verts[0] + 8) + pad;
-        y_max = * max_element(verts[1], verts[1] + 8) + pad;
-        assert(x_min <= x_max);
-        assert(y_min <= y_max);
-        clamp(x_min, 0, view->img->width - 1); clamp(x_max, 0, view->img->width - 1);
-        clamp(y_min, 0, view->img->height - 1); clamp(y_max, 0, view->img->height - 1);
-    }
-	
-    pair<int, int> begin() const {
-        return pair<int, int>(x_min, y_min);
-    }
-    pair<int, int> end() const {
-        return pair<int, int>(x_min, y_max + 1);
-    }
-    void next(pair<int, int>& p) const {
-        if (p.first == x_max) 
-            { p.first = x_min; p.second++; }
-        else
-            p.first++;
-    }
-};
 
 void visualHull(
     Volume* volume, 
-    std::vector<View*> views) {
+    std::vector<View*>& views) {
 
     double threshold = 5;
 
     int xr = volume->xRes, yr = volume->yRes, zr = volume->zRes;
     
     for (int x = 0; x < xr; x++) { 
-        if (x % 10 == 0) { cout << "."; cout.flush(); }
-        if (x % 50 == 0) { cout << x; cout.flush(); }
+        if (x % 5 == 0) { cout << "."; cout.flush(); }
+        if (x % 10 == 0) { cout << x; cout.flush(); }
         for (int y = 0; y < yr; y++) {
             for (int z = 0; z < zr; z++) {
                 vec3 pt(x + 0.5, y + 0.5, z + 0.5);
@@ -170,114 +86,6 @@ void visualHull(
 
 }
 
-//A neighborhood within a view
-struct Neighborhood
-{
-    View * view;
-    int x, y;
-    
-    Neighborhood() {}
-    Neighborhood(const Neighborhood& n) : view(n.view), x(n.x), y(n.y) {}
-    Neighborhood(View * v, int x_, int y_) : view(v), x(x_), y(y_) {}
-    
-};
-
-//Check if a set of neighborhoods is photoconsistent
-// This clearly does not work.
-bool checkNeighborhood(vector<Neighborhood> &patches)
-{
-    //No patches, no match
-    if(patches.size() < 1)
-        return true;
-    vec3 mu0 = 0.0f, mu1 = 0.0f;
-    
-    for(size_t i=0; i<patches.size(); i++)
-    {
-        vec3 pixel = patches[i].view->readPixel(
-            patches[i].x,
-            patches[i].y);
-        
-        mu0 += pixel;
-        pixel *= pixel;
-        mu1 += pixel;
-    }
-
-    //No patches, no match
-    if(patches.size() <= 1)
-        return true;
-
-    //Calculate sigma
-    mu0 *= mu0;
-    mu0 /= (float)patches.size();
-    mu1 -= mu0;
-    mu1 /= (float)(patches.size() - 1);
-    
-    vec3 sigma = mu1;
-    //These values are arbitrary
-    vec3 thresh = cfg::config::global.get<vec3>("photohull_threshold");
-
-    bool cull1 = sigma(0) > thresh(0), 
-        cull2 = sigma(1) > thresh(1),
-        cull3 = sigma(2) > thresh(2);
-    count1 += cull1 && !cull2 && !cull3;
-    count2 += !cull1 && cull2 && !cull3;
-    count3 += !cull1 && !cull2 && cull3;
-    count4 += cull1 || cull2 || cull3;
-    return  !cull1 && !cull2 && !cull3;
-}
-
-//Checks photoconsistency of a voxel in the volume
-bool checkConsistency(
-    std::vector<View*> views,
-    Volume* volume,
-    ivec3 point,
-    int d)
-{
-    //Create patches
-    vector<Neighborhood> patches;
-    
-    bool in_frame = false;
-    
-    vec3 pt = point; pt += 0.5;
-    
-    //Construct the cone
-    vec3 dn = DN[d], du = DU[d], dv = DV[d];
-    
-    Cone cone(dn, du, dv, pt);
-    
-    //Traverse all views
-    for(size_t i=0; i<views.size(); i++)
-    {
-        View * view = views[i];
-        
-        //Check for in-frame condition
-        vec3 img_loc = hgmult(view->cam, pt);
-        int ix = img_loc(0), iy = img_loc(1);
-        
-        if (!view->in_bounds(ix, iy) || cone.contains(view->center)) continue;
-        
-        in_frame = true;
-        
-        //If already consistent, then continue
-        if(view->consist(ix, iy))
-            continue;
-        
-        //Accumulate statistics
-        patches.push_back(Neighborhood(view, ix, iy));
-    }
-    
-    if(!in_frame || !checkNeighborhood(patches))
-        return false;
-    
-    //Mark consistency
-    for(size_t i=0; i<patches.size(); i++) {
-        VoxelProjection vp(patches[i].view, point);
-        for (pair<int, int> iter = vp.begin(); iter != vp.end(); vp.next(iter))
-            patches[i].view->consist(iter.first, iter.second) = 255;
-    }
-    
-    return true;
-} 
 
 //Sweeps a plane through volume
 bool planeSweep(
@@ -308,7 +116,8 @@ bool planeSweep(
     for(int i=0; i<3; i++)
         p(i) = dn(i) < 0 ? bound[i] - 1 : 0;
     
-    for(int i=0; i<si; i++, p += dn, q = p) {        
+    for(int i=0; i<si; i++, p += dn, q = p) { 
+        if ((i % 10) == 0) cout << "." << flush;       
         for(int j=0; j<sj; j++, q += du, r = q) {
             for(int k=0; k<sk; k++, r += dv) {
                 if(volume->on_surface(r) && !checkConsistency(views, volume, r, d)) {
@@ -319,6 +128,8 @@ bool planeSweep(
             }
         }
     }
+
+    cout << removed << endl;
 
     return done;
 }
@@ -338,7 +149,7 @@ Volume* findHull(
     
     int pass = 1; int num_removed;
 
-    //visualHull(volume, views);
+    visualHull(volume, views);
     while(true)
     {
         num_removed = 0;
@@ -370,6 +181,8 @@ Volume* findHull(
         cout << count1 << " " << count2 << " " << count3 << " " << count4 << " "
              << count5 << " " << count6 << endl;
         if (num_removed == 0) break;
+        
+        break;
     }
     
     return volume;
