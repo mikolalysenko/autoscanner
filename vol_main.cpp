@@ -70,7 +70,7 @@ int main(int argc, char** argv)
         //vector<View*> frames = loadVideo("mvi_0883.avi", ivec3(size, size, size), low, high);
         
         vector<View*> frames = loadTempBundleData(
-            "data/sai3",
+            "sai3",
             ivec3(size, size, size),
             low, high);
             
