@@ -51,7 +51,7 @@ int main(int argc, char** argv)
         ivec3(0,255,0),
         ivec3(0,0,255),
         ivec3(255,255,255)};
-
+/*
     for (int i = 0; i < views.size(); i++) {
         vec3 bgcolor = bgcolors[i % 5];
         
@@ -65,12 +65,11 @@ int main(int argc, char** argv)
 
         }
 
-        stringstream buf;
-        buf << "temp/testimg" << i << ".png";
-        cvSaveImage(buf.str().c_str(), views[i]->img);
-        
+        //stringstream buf;
+        //buf << "temp/testimg" << i << ".png";
+        //cvSaveImage(buf.str().c_str(), views[i]->img);        
     }
-    
+*/    
 
 	/*
 	vector<View*> views = loadViews("dino/dino_par_good.txt",
@@ -99,6 +98,7 @@ int main(int argc, char** argv)
 	
 	cout << "Saving..." << endl;
     volume->save("test/test");
+    volume->savePly("test/test-", views);
     
     for (size_t i=0; i<views.size(); i++) {
         string fname = "test/consist"; fname += '0' + i; fname += ".png";

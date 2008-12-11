@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp config.cpp kutulakis.cpp
+SOURCES  = volume.cpp view.cpp misc.cpp photohull.cpp config.cpp kutulakis.cpp consistency.cpp
 
 DEPENDS  = $(SOURCES:.cpp=.d)
 OBJECTS  = $(SOURCES:.cpp=.o)
@@ -14,7 +14,7 @@ VOLTARGET= volmain
 
 ###############################################################################
 
-OPTFLAGS = -O3
+OPTFLAGS = -ggdb
 
 CC      = g++
 CFLAGS  = -I/opt/local/include -Wall -Wno-format $(OPTFLAGS)

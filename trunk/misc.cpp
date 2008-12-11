@@ -127,8 +127,11 @@ vec3 hgmult(const mat44& a, const vec3& b)
     return vec3(r(0) / r(3), r(1) / r(3), r(2) / r(3));
 }
 
-void savePly(const string& filename, const vector<vec3>& points) {
+void savePly(const string& filename, const vector<vec3>& points, const vector<ivec3>& color) {
     typedef const vector<vec3> pointVector;
+    typedef const vector<ivec3> colorVector;
+
+    assert(points.size() == color.size());
     
     ofstream fout(filename.c_str(), ios_base::out | ios_base::trunc);
 
@@ -139,10 +142,13 @@ void savePly(const string& filename, const vector<vec3>& points) {
     fout << "property float x" << endl;
     fout << "property float y" << endl;
     fout << "property float z" << endl;
+    fout << "property uchar blue" << endl;
+    fout << "property uchar green" << endl;
+    fout << "property uchar red" << endl;
     fout << "end_header" << endl;
 
-    for (pointVector::const_iterator iter = points.begin(); iter != points.end(); iter++)
-        fout << (*iter)(0) << " " << (*iter)(1) << " " << (*iter)(2) << endl;
+    for (int i = 0; i < points.size(); i++)
+        fout << points[i](0) << " " << points[i](1) << " " << points[i](2) << " " << color[i](0) << " " << color[i](1) << " " << color[i](2) << endl;
 
     fout.close();
 
