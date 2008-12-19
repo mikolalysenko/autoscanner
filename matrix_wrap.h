@@ -3,6 +3,11 @@
 
 #include <ostream>
 
+
+// matrix_wrap.h shouldn't be included explicitly, only through misc.h since misc.h possibly defines
+// constants that we use. Let's ensure we get those.
+#include "misc.h"
+
 namespace matrix {
 
     template <typename matrix_type, typename matrix_traits> struct matrix;
@@ -91,7 +96,7 @@ namespace matrix {
     std::ostream& operator<<(std::ostream& o, const matrix<matrix_type, matrix_traits>& m) { return o << unwrap(m); }
 }
 
-#ifdef USE_BLITZPP
+#ifdef MW_USE_BLITZPP
     #define MW_NEEDS_BINARY_OPERATORS
     //Blitz++
     #include <blitz/tinyvec.h>
@@ -117,7 +122,7 @@ namespace matrix {
 
         template <typename T, typename matrix_type, typename matrix_traits>
         struct binary_operator<T, matrix<matrix_type, matrix_traits> > {
-            typedef matrix<matrix_type, matrix_traits> return_type;
+            typedef const matrix<matrix_type, matrix_traits> return_type;
             typedef const T& left;
             typedef const matrix<matrix_type, matrix_traits>& right;
             static return_type add(left l, right r) { matrix_type m(r.mat_); return (m += unwrap(l)); }
@@ -128,7 +133,7 @@ namespace matrix {
 
         template <typename T, typename matrix_type, typename matrix_traits>
         struct binary_operator<matrix<matrix_type, matrix_traits>, T> {
-            typedef matrix<matrix_type, matrix_traits> return_type;
+            typedef const matrix<matrix_type, matrix_traits> return_type;
             typedef const T& right;
             typedef const matrix<matrix_type, matrix_traits>& left;
             static return_type add(left l, right r) { matrix_type m(l.mat_); return (m += unwrap(r)); }
