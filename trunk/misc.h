@@ -1,7 +1,7 @@
 #ifndef MISC_H
 #define MISC_H
 
-#define USE_BLITZPP
+#define MW_USE_BLITZPP
 #include "matrix_wrap.h"
 
 
