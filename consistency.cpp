@@ -36,8 +36,10 @@ bool checkNeighborhood(vector<VoxelProjection> &patches, vec3& color)
     color = mu0;
     color /= (float)patches.size();
     //Calculate sigma
-    mu0 *= mu0;
-    mu0 /= (float)patches.size();
+   // mu0 *= mu0;
+    //mu0 /= (float)patches.size();
+
+    mu0 = mu0 * mu0 / (float)patches.size();
     
     mu1 -= mu0;
     mu1 /= (float)(patches.size() - 1);
