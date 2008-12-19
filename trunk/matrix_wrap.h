@@ -89,50 +89,11 @@ namespace matrix {
 
     template <typename matrix_type, typename matrix_traits>
     std::ostream& operator<<(std::ostream& o, const matrix<matrix_type, matrix_traits>& m) { return o << unwrap(m); }
-
-
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator+(const matrix<matrix_type, matrix_traits>& wrapped, const T& t) {
-        matrix_type mat(wrapped.mat_);
-        return matrix<matrix_type, matrix_traits>(mat += unwrap(t));
-    }
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator+(const T& t, const matrix<matrix_type, matrix_traits>& wrapped)
-        { return wrapped + t; }
-
-
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator-(const matrix<matrix_type, matrix_traits>& wrapped, const T& t) {
-        matrix_type mat(wrapped.mat_);
-        return matrix<matrix_type, matrix_traits>(mat -= unwrap(t));
-    }
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator-(const T& t, const matrix<matrix_type, matrix_traits>& wrapped)
-        { return wrapped - t; }
-
-
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator*(const matrix<matrix_type, matrix_traits>& wrapped, const T& t) {
-        matrix_type mat(wrapped.mat_);
-        return matrix<matrix_type, matrix_traits>(mat *= unwrap(t));
-    }
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator*(const T& t, const matrix<matrix_type, matrix_traits>& wrapped)
-        { return wrapped * t; }
-
-
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator/(const matrix<matrix_type, matrix_traits>& wrapped, const T& t) {
-        matrix_type mat(wrapped.mat_);
-        return matrix<matrix_type, matrix_traits>(mat /= unwrap(t));
-    }
-    template <typename T, typename matrix_type, typename matrix_traits>
-    const matrix<matrix_type, matrix_traits> operator/(const T& t, const matrix<matrix_type, matrix_traits>& wrapped)
-        { return wrapped / t; }
 }
 
 #ifdef USE_BLITZPP
-//Blitz++
+    #define MW_NEEDS_BINARY_OPERATORS
+    //Blitz++
     #include <blitz/tinyvec.h>
     #include <blitz/tinymat.h>
     //Vector types
@@ -145,6 +106,61 @@ namespace matrix {
     typedef matrix::matrix<blitz::TinyMatrix<float, 4, 4>, matrix::matrix_traits<float> > mat44;
 #else
 
+#endif
+
+
+#ifdef MW_NEEDS_BINARY_OPERATORS
+    namespace matrix {
+
+        template <typename T, typename U>
+        struct binary_operator;
+
+        template <typename T, typename matrix_type, typename matrix_traits>
+        struct binary_operator<T, matrix<matrix_type, matrix_traits> > {
+            typedef matrix<matrix_type, matrix_traits> return_type;
+            typedef const T& left;
+            typedef const matrix<matrix_type, matrix_traits>& right;
+            static return_type add(left l, right r) { matrix_type m(r.mat_); return (m += unwrap(l)); }
+            static return_type subtract(left l, right r) { matrix_type m(r.mat_); return (m -= unwrap(l)); }
+            static return_type multiply(left l, right r) { matrix_type m(r.mat_); return (m *= unwrap(l)); }
+            static return_type divide(left l, right r) { matrix_type m(r.mat_); return (m /= unwrap(l)); }
+        };
+
+        template <typename T, typename matrix_type, typename matrix_traits>
+        struct binary_operator<matrix<matrix_type, matrix_traits>, T> {
+            typedef matrix<matrix_type, matrix_traits> return_type;
+            typedef const T& right;
+            typedef const matrix<matrix_type, matrix_traits>& left;
+            static return_type add(left l, right r) { matrix_type m(l.mat_); return (m += unwrap(r)); }
+            static return_type subtract(left l, right r) { matrix_type m(l.mat_); return (m -= unwrap(r)); }
+            static return_type multiply(left l, right r) { matrix_type m(l.mat_); return (m *= unwrap(r)); }
+            static return_type divide(left l, right r) { matrix_type m(l.mat_); return (m /= unwrap(r)); }
+        };
+
+        template <typename matrix_type, typename matrix_traits, typename o_matrix_type, typename o_matrix_traits>
+        struct binary_operator<matrix<matrix_type, matrix_traits>, matrix<o_matrix_type, o_matrix_traits> > {
+            typedef const matrix<matrix_type, matrix_traits> return_type;
+            typedef const matrix<o_matrix_type, o_matrix_traits>& right;
+            typedef const matrix<matrix_type, matrix_traits>& left;
+            static return_type add(left l, right r) { matrix_type m(l.mat_); return (m += unwrap(r)); }
+            static return_type subtract(left l, right r) { matrix_type m(l.mat_); return (m -= unwrap(r)); }
+            static return_type multiply(left l, right r) { matrix_type m(l.mat_); return (m *= unwrap(r)); }
+            static return_type divide(left l, right r) { matrix_type m(l.mat_); return (m /= unwrap(r)); }
+        };
+            
+
+        template <typename T, typename U>
+        typename binary_operator<T, U>::return_type operator+(const T& t, const U& u) { return binary_operator<T, U>::add(t, u); }
+
+        template <typename T, typename U>
+        typename binary_operator<T, U>::return_type operator-(const T& t, const U& u) { return binary_operator<T, U>::subtract(t, u); }
+
+        template <typename T, typename U>
+        typename binary_operator<T, U>::return_type operator*(const T& t, const U& u) { return binary_operator<T, U>::multiply(t, u); }
+
+        template <typename T, typename U>
+        typename binary_operator<T, U>::return_type operator/(const T& t, const U& u) { return binary_operator<T, U>::divide(t, u); }
+    }
 #endif
 
 
