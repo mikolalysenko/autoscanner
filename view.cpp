@@ -46,6 +46,7 @@ void fill_rec(
     ivec3 base_c,
     int x, int y)
 {
+    //cout << " fill_rec " << x << " " << y << endl;
     if(x < 0 || x >= img->width || y < 0 || y >= img->height)
         return;
     
@@ -54,16 +55,19 @@ void fill_rec(
     bool eq = true;
     ivec3 c;
     
+    //cout << " 1 " << endl;
     for(int i=0; i<3; i++)
     {
         c(i) = (unsigned char)img->imageData[idx + i];
         eq &= c(i) == fill_c(i);
     }
+    //cout << " 2 " << endl;
     
     if(eq) return;
     
     c -= base_c;
     
+    //cout << " 3 " << endl;
     if(len(c) <= FILL_THRESHOLD)
     {
         for(int i=0; i<3; i++)
@@ -75,6 +79,7 @@ void fill_rec(
             fill_rec(img, fill_c, base_c, x+dx, y+dy);
         }
     }
+    //cout << " 4 " << endl;
 }
 
 
@@ -94,14 +99,18 @@ void fill_hack(IplImage * img)
 
 void View::init(mat44 K_, mat44 R_, mat44 S_) {
     K = K_; R = R_; S = S_;
+    cout << " copied " << endl;
     //Calculate camera matrices
     cam = mmult(K, mmult(R, S));
+    cout << " 1 " << endl;
 
     //Needed for view saving
     cam_inv = inverse(mmult(R, S));
+    cout << " 2 " << endl;
     
     //Compute optical center
     center = hgmult(inverse(mmult(R, S)), vec3(0, 0, 0));
+    cout << " 3 " << endl;
 
     //Debug spam
     cout << "Camera: " << cam << endl
@@ -143,7 +152,10 @@ View::View(IplImage * pic, mat44 K_, mat44 R_, mat44 S_)
     assert(img != NULL);
     
     img = pic;
+    
+    cout << " 1 " << endl;
     fill_hack(pic);
+    cout << " 2 ~~~ " << endl;
     
     //Create data
     consist_data = (char*)malloc(img->width * img->height);
@@ -161,7 +173,7 @@ vec3 View::readPixel(int ix, int iy) const
     iy = min(max(iy, 0), img->height - 1);
     
     //Read from image
-    unsigned char * ptr = reinterpret_cast<unsigned char*>(&img->imageData[3 * (ix ) + iy * img->widthStep]);
+    unsigned char * ptr = reinterpret_cast<unsigned char*>(&img->imageData[3 * (ix ) + 3 * iy * img->width]);
     
     //Convert pixel coordinates
     return vec3(ptr[0], ptr[1], ptr[2]);
@@ -280,6 +292,8 @@ config View::save(const std::string& name, const std::string& dir) {
 
 void View::load(config& data) {
     mat44 K_, R_, S_;
+
+    cout << "loading matrices :/" << endl;
     K_ = data.get("K", K_);
     R_ = data.get("R", R_);
 
@@ -298,11 +312,13 @@ void View::load(config& data) {
     S_(3,3) = 1.0f;
     for(int i=0; i<3; i++)
         S_(i,3) = lo(i);
-
+    
+    cout << "initing" << endl;
     init(K_,R_,S_);   
     
     
     std::string filename = data.get("img_filename", filename);
+    cout << filename << endl;
     img = cvLoadImage(filename.c_str());    
     consist_data = (char*)malloc(img->width * img->height);
 }
@@ -329,6 +345,7 @@ std::vector<View*> loadTempViews(const std::string& filename) {
     cout << filename << " ---- " << endl;
     config viewsData("Views");
     viewsData.load(filename);
+    cout << " --- " << endl;
     std::vector<View*> out;
     for (config::child_map::iterator iter = viewsData.childBegin(); 
             iter != viewsData.childEnd(); iter++) {
@@ -355,6 +372,6 @@ void saveCameraPLY(const char * file, vector<View*> views)
     }
     
     //Save points to PLY file
-    savePly(filename, points);
+    //savePly(filename, points);
 }
 

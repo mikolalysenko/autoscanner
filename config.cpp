@@ -85,6 +85,7 @@ std::string read(const std::string& data, const Type2Type<std::string>&)
 vec3 read(const std::string& data, const Type2Type<vec3>&) {
     vec3 val;
     stringstream buf(data);
+    cout << " 1 " << endl;
     for (int i = 0; i < 3; i++)
         buf >> val(i);
     return val;
@@ -92,6 +93,7 @@ vec3 read(const std::string& data, const Type2Type<vec3>&) {
 mat44 read(const std::string& data, const Type2Type<mat44>&) {
     mat44 val;
     stringstream buf(data);
+    cout << " 2 " << endl;
     for (int i = 0; i < 4; i++)
     for (int j = 0; j < 4; j++)
         buf >> val(i,j);

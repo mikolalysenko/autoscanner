@@ -37,6 +37,8 @@ int main(int argc, char** argv)
 
 	vector<View*> views = loadTempViews(config::global.get<std::string>("views_file"));
 
+    cout << " here " << endl;
+
     /*
 	vector<View*> views = loadViews("templeR/templeR_par.txt", 
 		low, 

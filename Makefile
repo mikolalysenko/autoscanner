@@ -14,7 +14,7 @@ VOLTARGET= volmain
 
 ###############################################################################
 
-OPTFLAGS = -ggdb
+OPTFLAGS = -O3
 
 CC      = g++
 CFLAGS  = -I/opt/local/include -Wall -Wno-format $(OPTFLAGS)
@@ -34,7 +34,7 @@ $(VOLTARGET): $(OBJECTS) vol_main.o video_loader.o volume_cuts.o
 	$(CC) $(CFLAGS) vol_main.o video_loader.o volume_cuts.o $(OBJECTS) $(LDFLAGS) -o $@
 
 clean:
-	$(RM) $(OBJECTS) $(DEPENDS)
+	$(RM) $(OBJECTS) $(DEPENDS) main.o
 	$(RM) $(TARGET) $(VOLTARGET)
 
 .PHONY: all clean

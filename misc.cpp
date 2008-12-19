@@ -98,8 +98,9 @@ mat44 mmult(const mat44& a, const mat44& b)
     for(int j=0; j<4; j++)
     {
         r(i,j) = 0.0f;
-        for(int k=0; k<4; k++)
+        for(int k=0; k<4; k++) {
             r(i,j) += a(i,k) * b(k,j);
+        }
     }
     
     return r;
