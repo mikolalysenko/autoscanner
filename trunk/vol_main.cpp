@@ -98,19 +98,20 @@ int main(int argc, char** argv)
         frames.erase(frames.begin(), frames.begin() + 2);
         */
         
-        saveTempViews("temp_views/", "list", frames);
+        //saveTempViews("temp_views/", "list", frames);
         
         cout << "low = " << low << endl
              << "high = " << high << endl;
              
         //Save camera positions
-        saveCameraPLY("cameras.ply", frames);
+        //saveCameraPLY("cameras.ply", frames);
         
         Volume * hull = findHull(frames, 
             size,size,size,
             low, high);
     
         hull->save("test/test");
+        hull->savePly("test/test", frames);
         
 	return 0;
 }

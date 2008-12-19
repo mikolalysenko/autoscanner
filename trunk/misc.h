@@ -1,17 +1,14 @@
 #ifndef MISC_H
 #define MISC_H
 
+#define USE_BLITZPP
+#include "matrix_wrap.h"
+
+
 //STL
 #include <utility>
 #include <vector>
-#include <string>
-
-//Blitz++
-#include <blitz/tinyvec.h>
-#include <blitz/tinymat.h>
-
-
-
+#include <string>
 
 //OpenCV Headers
 #ifdef __APPLE__
@@ -30,14 +27,7 @@ namespace std
 #  include <opencv/highgui.h>
 #endif
 
-//Vector types
-typedef blitz::TinyVector<int, 3>       ivec3;
-typedef blitz::TinyVector<int, 4>       ivec4;
-typedef blitz::TinyVector<float, 3>     vec3;
-typedef blitz::TinyVector<float, 4>     vec4;
-typedef blitz::TinyMatrix<float, 3, 3>  mat33;
-typedef blitz::TinyMatrix<float, 3, 4>  mat34;
-typedef blitz::TinyMatrix<float, 4, 4>  mat44;
+
 
 //A ray
 struct Ray

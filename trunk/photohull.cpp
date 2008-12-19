@@ -149,7 +149,7 @@ Volume* findHull(
     
     int pass = 1; int num_removed;
 
-    visualHull(volume, views);
+    //visualHull(volume, views);
     while(true)
     {
         num_removed = 0;
@@ -182,7 +182,6 @@ Volume* findHull(
              << count5 << " " << count6 << endl;
         if (num_removed == 0) break;
         
-        break;
     }
     
     return volume;

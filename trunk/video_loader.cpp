@@ -439,6 +439,8 @@ vector<View*> loadTempBundleData(
         cout << "Loading image " << name << endl;
         
         IplImage * img = cvLoadImage(name.c_str());
+        cout << img->height << " " << img->width << " " << img->imageData[0] << endl;
+
         frames.push_back(img);
     }
     
