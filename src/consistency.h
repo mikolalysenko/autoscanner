@@ -1,11 +1,11 @@
 #ifndef CONSISTENCY_H
 #define CONSISTENCY_H
 
-
-#include "misc.h"
 #include "volume.h"
 
 #include <vector>
+
+#include <Eigen/Core>
 
 //Check if a set of neighborhoods is photoconsistent
 extern bool checkNeighborhood(vector<VoxelProjection>& patches) ;
@@ -14,7 +14,7 @@ extern bool checkNeighborhood(vector<VoxelProjection>& patches) ;
 extern bool checkConsistency(
     std::vector<View*>& views,
     Volume* volume,
-    ivec3 point,
+    Eigen::Vector3i point,
     int d) ;
 
 

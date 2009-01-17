@@ -4,15 +4,16 @@
 #include <cassert>
 #include <string>
 
-#include "misc.h"
 #include "view.h"
 
-using namespace blitz;
-
+#include <Eigen/Core>
 
 //Voxel data structure
 struct Volume
 {
+    typedef Eigen::Vector3f vec3;
+    typedef Eigen::Vector3i ivec3;
+    
     unsigned char * data;
     unsigned char * color;
     size_t xRes, yRes, zRes;

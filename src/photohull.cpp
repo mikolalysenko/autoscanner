@@ -9,6 +9,18 @@
 #include "config.h"
 #include "consistency.h"
 
+//TODO: Switch all instances of variables to Eigen style
+#include <Eigen/Core>
+USING_PART_OF_NAME_NAMESPACE_EIGEN
+
+typedef Vector2f  vec2;
+typedef Vector2i ivec2;
+typedef Vector3f  vec3;
+typedef Vector3i ivec3;
+typedef Vector4f  vec4;
+typedef Vector4i ivec4;
+
+
 using namespace std;
 using namespace blitz;
 

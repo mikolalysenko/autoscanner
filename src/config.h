@@ -1,3 +1,5 @@
+//TODO: Document this
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -8,9 +10,14 @@
 #include <string>
 #include <map>
 
-#include "misc.h"
+#include <Eigen/Core>
 
 namespace cfg {
+    
+    
+    typedef Eigen::Vector3f vec3;
+    typedef Eigen::Matrix4f mat44;
+    
     template <typename T>
     class Type2Type {
         typedef T type;
