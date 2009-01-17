@@ -1,14 +1,17 @@
+//This module implements a copy-on-write wrapper for OpenCV's image
 #ifndef IMAGE_H
 #define IMAGE_H
 
 #include <boost/shared_ptr.hpp>
-#include "misc.h"
+#include <Eigen/Core>
 
 //Pixel data type with interface to Eigen
 // Somewhat tedious, but necessary due to the fact that Eigen's internal memory layout is not
 // compatible with the pixel format used by OpenCV.
 struct Pixel
 {
+    using namespace Eigen;
+    
     //Default ctors
     Pixel() : b(0), g(0), r(0) {}
     Pixel(const Pixel& p) : b(p.b), g(p.g), r(p.r) {}
@@ -96,6 +99,8 @@ extern std::ostream& operator<<(std::ostream& os, const Pixel& p);
 //Not thread safe in the least, but who cares?
 struct Image
 {
+    using namespace Eigen;
+    
     //NULL constructor
     Image() {}
     

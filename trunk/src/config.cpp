@@ -1,3 +1,5 @@
+//TODO: Document this
+
 #include "config.h"
 
 #define WRITE for (int i__0 = 0; i__0 < level; i__0++) fout << "    "; fout

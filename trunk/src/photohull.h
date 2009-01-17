@@ -3,24 +3,28 @@
 
 #include <vector>
 
-#include "misc.h"
 #include "volume.h"
 #include "view.h"
 
+#include <Eigen/Core>
+
 //Handy aliases for plane directions
-extern const vec3 DN[], DU[], DV[];
+extern const Vector3f DN[], DU[], DV[];
 extern const int N_DIM[], U_DIM[], V_DIM[];
 
 //Computes the photohull within a volume
 extern Volume* findHull(
     std::vector<View*> views, 
     int xr, int yr, int zr,
-    vec3 low, vec3 high);
+    Eigen::Vector3f low, Eigen::Vector3f high);
 
-extern const vec3 DN[6], DU[6], DV[6];
+extern const Eigen::Vector3f DN[6], DU[6], DV[6];
 
 struct Cone
 {
+    typedef Eigen::Vector3f vec3;
+    typedef Eigen::Vector4f vec4;
+    
     vec4 cone[4];
 
     Cone(vec3 dn, vec3 du, vec3 dv, vec3 pt) {

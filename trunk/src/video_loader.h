@@ -5,14 +5,24 @@
 #include <string>
 #include "view.h"
 
+#include <Eigen/Core>
+
 //Path to the bundler script
 extern const char* bundler_path;
 
 //Loads a video sequence, calls bundler
-std::vector<View*> loadVideo(const char * video_file, ivec3 grid_dim, vec3& low, vec3& high);
+std::vector<View*> loadVideo(
+    const char * video_file, 
+    Vector3i grid_dim, 
+    Vector3f& low, 
+    Vector3f& high);
 
 //Loads up temporary data
-std::vector<View*> loadTempBundleData(const char* directory, ivec3 grid_dim, vec3& box_min, vec3& box_max);
+std::vector<View*> loadTempBundleData(
+    const char* directory, 
+    Vector3i grid_dim, 
+    Vector3f& box_min, 
+    Vector3f& box_max);
 
 
 #endif

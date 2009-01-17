@@ -1,7 +1,6 @@
 #ifndef VIEW_H
 #define VIEW_H
 
-#include "misc.h"
 #include "config.h"
 
 #include <cassert>
@@ -10,11 +9,16 @@
 #include <string>
 #include <utility>
 
+#include <Eigen/Core>
+
 using namespace cfg;
 
 //A camera view
 struct View
 {
+    typedef Eigen::Matrix4f mat44;
+    typedef Eigen::Vector3f vec3;
+    
     //Image data
     IplImage * img;
     
