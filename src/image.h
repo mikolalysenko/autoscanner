@@ -2,8 +2,8 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#include <vector>
 #include <boost/shared_ptr.hpp>
-
 #include <Eigen/Core>
 
 #include "opencv.h"

@@ -18,24 +18,44 @@ struct View
 {
     //Default constructors
     View();
-    View(const View& other);
+    View(const View& other) :
+        img(other.img), R(other.R), K(other.K) {}
     
     //Construction from parameters
-    View(const Image image, Eigen::Matrix4f cam);
+    View(const Image img_, Eigen::Matrix4d R_, Eigen::Matrix4d K_) :
+        img(img_), R(R_), K(K_) {}
     
-    //TODO: Implement serialization for debugging
+    //Assignment operator
+    View operator=(const View& other)
+    {
+        img = other.img;
+        R = other.R;
+        K = other.K;
+        return *this;
+    }
     
-    //Accessors
-    Eigen::Vector3f center() const;
-    Eigen::Matrix4f camera() const      { return cam; }
+    //Matrix accessors
+    Eigen::Vector3d center() const      { return R.block(0,3,3,4); }
+    Eigen::Matrix4d rotation() const    { return R.block(0,3,0,3); }
+    Eigen::Matrix4d intrinsic() const   { return K; }
+    Eigen::Matrix4d world() const       { return R; }
+    Eigen::Matrix4d camera() const      { return K * R; }
+    
+    //Image accessor
     Image image() const                 { return img; }
+    
+    
+    //TODO: Implement serialization / debugging code
     
 private:
     //Image data
     Image img;
     
-    //Camera parameters
-    Eigen::Matrix4f cam;
+    //World matrix (stores position/rotation)
+    Eigen::Matrix4d R;
+    
+    //Intrinsic matrix (stores focal length, local image trnasform)
+    Eigen::Matrix4d K;
 };
 
 
