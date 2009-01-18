@@ -3,14 +3,19 @@
 #define IMAGE_H
 
 #include <boost/shared_ptr.hpp>
+
 #include <Eigen/Core>
+
+#include "opencv.h"
+#include "system.h"
+
+    
 
 //Pixel data type with interface to Eigen
 // Somewhat tedious, but necessary due to the fact that Eigen's internal memory layout is not
 // compatible with the pixel format used by OpenCV.
 struct Pixel
 {
-    using namespace Eigen;
     
     //Default ctors
     Pixel() : b(0), g(0), r(0) {}
@@ -18,14 +23,14 @@ struct Pixel
     Pixel(ubyte r_, ubyte g_, ubyte b_) : b(b_), g(g_), r(r_) {}
     
     //Vector -> Pixel cast operators
-    Pixel(const Vector3i& v) : b(v.z()), g(v.y()), r(v.x()) {}
-    Pixel(const Vector3f& v)
+    Pixel(const Eigen::Vector3i& v) : b(v.z()), g(v.y()), r(v.x()) {}
+    Pixel(const Eigen::Vector3f& v)
     {
         r = ubyte(saturate(v.x()) * 255.0f);
         g = ubyte(saturate(v.y()) * 255.0f);
         b = ubyte(saturate(v.z()) * 255.0f);
     }
-    Pixel(const Vector3d& v)
+    Pixel(const Eigen::Vector3d& v)
     {
         r = ubyte(saturate(v.x()) * 255.0f);
         g = ubyte(saturate(v.y()) * 255.0f);
@@ -40,21 +45,21 @@ struct Pixel
         b = v.b;
         return *this;
     }
-    Pixel operator=(const Vector3i& v)
+    Pixel operator=(const Eigen::Vector3i& v)
     {
         r = v.x();
         g = v.y();
         b = v.z();
         return *this;
     }
-    Pixel operator=(const Vector3f& v)
+    Pixel operator=(const Eigen::Vector3f& v)
     {
         r = ubyte(saturate(v.x()) * 255.0f);
         g = ubyte(saturate(v.y()) * 255.0f);
         b = ubyte(saturate(v.z()) * 255.0f);
         return *this;
     }
-    Pixel operator=(const Vector3d& v)
+    Pixel operator=(const Eigen::Vector3d& v)
     {
         r = ubyte(saturate(v.x()) * 255.0f);
         g = ubyte(saturate(v.y()) * 255.0f);
@@ -63,20 +68,20 @@ struct Pixel
     }
     
     //Pixel -> Vector cast operators
-    operator Vector3i () const
+    operator Eigen::Vector3i () const
     {
-        return Vector3i(r, g, b);
+        return Eigen::Vector3i(r, g, b);
     }
-    operator Vector3f () const
+    operator Eigen::Vector3f () const
     {
-        return Vector3f(
+        return Eigen::Vector3f(
             (float)r / 255.0f,
             (float)g / 255.0f,
             (float)b / 255.0f);
     }
-    operator Vector3d () const
+    operator Eigen::Vector3d () const
     {
-        return Vector3d(
+        return Eigen::Vector3d(
             (double)r / 255.0,
             (double)g / 255.0,
             (double)b / 255.0);
@@ -99,8 +104,6 @@ extern std::ostream& operator<<(std::ostream& os, const Pixel& p);
 //Not thread safe in the least, but who cares?
 struct Image
 {
-    using namespace Eigen;
-    
     //NULL constructor
     Image() {}
     
