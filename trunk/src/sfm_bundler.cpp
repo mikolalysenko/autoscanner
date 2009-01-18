@@ -1,39 +1,39 @@
 //stdlib includes
 #include <vector>
-#include <sstream>
+#include <string>
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <cstdlib>
 
 //Eigen
 #include <Eigen/Core>
+#include <Eigen/LU>
 
 //Project
 #include "image.h"
 #include "view.h"
 
-USING_PART_OF_NAME_SPEACE_EIGEN
 using namespace std;
-
+using namespace Eigen;
 
 //Debugging stuff, needed to check for camera parameter correctness
 struct PointImage
 {
     int camera, key;
-    float x, y;
+    Vector2d loc;
 };
-
-vector<vec3> points;
-vector< vector<PointImage> > point_images;
-
 
 //Camera produced by bundler
 struct BundlerCamera
 {
-    mat44 R;
-    float f, k1, k2;
+    Matrix4d R;
+    double f, k1, k2;
 };
+
+
+//Debugging data, used for double checking computed matrix
+vector< Vector3f >              points;
+vector< vector< PointImage > >  point_images;
 
 //Used for debugging
 ostream& operator<<(ostream& os,  const BundlerCamera& cam)
@@ -47,15 +47,12 @@ ostream& operator<<(ostream& os,  const BundlerCamera& cam)
 }
 
 //Reads in bundler data
-vector<BundlerCamera> readBundlerData(
-    const char * filename, 
-    vec3& box_min, 
-    vec3& box_max)
+vector<BundlerCamera> readBundlerData(const string& filename)
 {
     cout << "Reading in bundler data:" << filename << endl;
     
     //Create read file
-    ifstream fin(filename);
+    ifstream fin(filename.c_str());
     
     //Skip first line (should be "#Bundle file v0.3")
     static char buf[1024];
@@ -67,7 +64,8 @@ vector<BundlerCamera> readBundlerData(
     int n_cameras, n_points;
     fin >> n_cameras >> n_points;
     
-    cout << "Num Cameras = " << n_cameras << ", Num points = " << n_points << endl;
+    cout << "Num Cameras = " << n_cameras 
+         << ", Num points = " << n_points << endl;
     
     //Parse out cameras first
     vector<BundlerCamera> result;
@@ -77,56 +75,43 @@ vector<BundlerCamera> readBundlerData(
         assert(!fin.fail());
         
         BundlerCamera cam;
+        fin >> cam.f >> cam.k1 >> cam.k2;
         
-        double f, k1, k2;
-        fin >> f >> k1 >> k2;
-        
-        cam.f = f;
-        cam.k1 = k1;
-        cam.k2 = k2;
+        //Reset matrix
+        cam.R.setZero();
         
         for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
         {
-            double d;
-            assert(fin >> d);
-            
-            cam.R(i,j) = d;
+            fin >> cam.R(i,j);
         }
         
         for(int i=0; i<3; i++)
         {
-            double d;
-            assert(fin >> d);
-            
-            cam.R(i,3) = d;
-            cam.R(3,i) = 0.0f;
+            fin >> cam.R(i,3);
         }
         
-        cam.R(3,3) = 1.0f;
-
+        cam.R(3,3) = 1.0;
+        
         cout << "Camera " << k << " = " << cam << endl;
         result.push_back(cam);
     }
         
     //Parse out point data & calculate bounding box
-    //vector<vec3> points;
+    points.clear();
+    point_images.clear();
     
     cout << "Reading point data..." << endl;
     for(int i=0; i<n_points; i++)
     {
-        double px, py, pz, cr, cg, cb;
+        Vector3d p, c;
         
-        if(!(fin >> px >> py >> pz
-                 >> cr >> cg >> cb))
+        if(!(fin >> p.x() >> p.y() >> p.z()
+                 >> c.x() >> c.y() >> c.z()))
         {
             cout << "Unexpected EOF" << endl;
             exit(1);
         }
-        
-        vec3 p = vec3(px, py, pz), c = vec3(cr, cg, cb);
-        
-        cout << "got p: " << p << endl;
         
         //Read in visible locations
         int n_views;
@@ -136,76 +121,29 @@ vector<BundlerCamera> readBundlerData(
         for(int j=0; j<n_views; j++)
         {
             PointImage pi;
-            fin >> pi.camera >> pi.key >> pi.x >> pi.y;
+            fin >> pi.camera >> pi.key >> pi.loc.x() >> pi.loc.y();
             p_images.push_back(pi);
         }
         points.push_back(p);
         point_images.push_back(p_images);
-        
     }
-    
-    //Calculate bounding box
-    findBox(points, box_min, box_max);
-    
-    //Print results
-    cout << "Box = " << box_min << " --- " << box_max << endl;    
     
     //Return the result
     return result;
 }
 
-
-//Toss the bad bundler data
-void fixupBundlerData(vector<IplImage*>& frames, vector<BundlerCamera>& cameras)
-{
-    int n_failures = 0;
-    cout << "Filtering camera data..." << endl;
-    
-    for(int i=(int)cameras.size() - 1; i>=0; i--)
-    {
-        float d = det(cameras[i].R);
-        
-        //Check for singular camera matrix (obviously bad)
-        if(abs(d) <= 1e-10f || 
-            len(vec3(
-                cameras[i].R(0,3),
-                cameras[i].R(1,3),
-                cameras[i].R(2,3))) > 30.0f ||
-            cameras[i].f < 100 ||
-            cameras[i].f > 2000)
-        {
-            cout << "Singular matrix for camera " << i << ", D = " << d << endl
-                << "cam = " << cameras[i] << endl;
-            
-            //Release iamge
-            cvReleaseImage(&frames[i]);
-            
-            //Resize vectors
-            cameras.erase(cameras.begin() + i);
-            frames.erase(frames.begin() + i);
-
-            n_failures ++;
-        }
-    }
-
-    
-    cout << n_failures << " failures" << endl;
-    if(n_failures > 0)
-        cout << "Way to go bundler..." << endl;
-}
-
-
-//Calls bundler script, calculates bounding box from points found using SfM
+//Calls bundler script
 vector<BundlerCamera> runBundler(
-    vector<IplImage*>& frames, 
-    vec3& box_min, 
-    vec3& box_max)
+    vector<Image> frames, 
+    const string& bundler_path)
 {
-    //Create paths
+    //Create temp directory
     string temp_directory = string(getTempDirectory()) + "/bundler";
-    string cur_directory = string(getenv("PWD"));
     system((string("rm -rf ") + temp_directory).c_str());
     system((string("mkdir ") + temp_directory).c_str());
+    
+    //Set current directory to temp directory
+    string cur_directory = string(getenv("PWD"));
     chdir(temp_directory.c_str());
     
     //Write frames to file
@@ -215,21 +153,16 @@ vector<BundlerCamera> runBundler(
         snprintf(file_name, 1024, "%s/frame%04d.jpg",  temp_directory.c_str(), i);
         
         cout << "Saving frame: " << file_name << endl;
-        cvSaveImage(file_name, frames[i]);
+        frames[i].save(file_name);
     }
     
     //Call bundler
-    string bundler_command = string(bundler_path) + " " + temp_directory;
+    string bundler_command = bundler_path + " " + temp_directory;
     system(bundler_command.c_str());
     
-    //Read in data (do not know format yet)
-    vector<BundlerCamera> result = readBundlerData(
-        (temp_directory + "/bundle/bundle.out").c_str(),
-        box_min,
-        box_max);
-    
-    //Toss bad data
-    fixupBundlerData(frames, result);
+    //Read in data from bundler
+    vector<BundlerCamera> result = 
+        readBundlerData(temp_directory + "/bundle/bundle.out");
     
     //Return to base directory
     chdir(cur_directory.c_str());
@@ -237,71 +170,52 @@ vector<BundlerCamera> runBundler(
     return result;
 }
 
+
+
 //Converts bundler formatted data + pictures to camera data
-vector<View*> convertBundlerData(
-    vector<IplImage*> frames,
-    vector<BundlerCamera> cameras,
-    ivec3 grid_dim,
-    vec3 box_min,
-    vec3 box_max)
+vector<View> convertBundlerData(
+    vector<Image> frames,
+    vector<BundlerCamera> cameras)
 {
-    //Construct grid -> box matrix
-    mat44 S;
-    for(int i=0; i<4; i++)
-    for(int j=0; j<4; j++)
-        S(i,j) = 0.0f;
-    for(int i=0; i<4; i++)
-        S(i,i) = 1.0f;
-    
-    for(int i=0; i<3; i++)
-    {
-        S(i,i) = (box_max(i) - box_min(i)) / (float)grid_dim(i);
-        S(i,3) = box_min(i);
-    }
-    S(3,3) = 1.0f;
-    
-    cout << "S matrix = " << S << endl;
-    
     //Unwarp images & build views
-    vector<View*> views;
+    vector<View> views;
     
     for(size_t n=0; n<frames.size(); n++)
     {
         cout << "Processing frame " << n << endl;
         
-        //Compute intrinsic matrix K
-        mat44 K;
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-            K(i,j) = 0.0f;
-        for(int i=0; i<4; i++)
-            K(i,i) = 1.0f;
-        K(1,1) = -1.0f;
-        K(0,3) = frames[n]->width/2.0f;
-        K(1,3) = frames[n]->height/2.0f;
         
-        //Construct perspective warping matrix
-        mat44 P;
-        for(int i=0; i<4; i++)
-        for(int j=0; j<4; j++)
-            P(i,j) = 0.0f;
+        //Check for singular rotation matrix
+        float d = cameras[n].R.determinant();
+        
+        //Check for singular camera matrix (obviously bad)
+        if(abs(d) <= 1e-10f)
+        {
+            cout << "Singular matrix for camera " << n
+                 << ", D = " << d << endl
+                 << "cam = " << cameras[n] << endl;
+            
+            continue;
+        }
+        
+        //Construct intrinsic matrix K
+        Matrix4d 
+            K = Matrix4d::Identity(),
+            P = Matrix4d::Zero();
+        
+        K(1,1) = -1.0;
+        K(0,3) = (double)frames[n].width()  / 2.0;
+        K(1,3) = (double)frames[n].height() / 2.0;
         
         P(0,0) = -cameras[n].f;
         P(1,1) = -cameras[n].f;
         P(2,3) = 1.0f;
         P(3,2) = 1.0f;
-        K = mmult(K, P);
         
-        cout << "K = " << K << endl;
-        
-        //Undistort cameras
-        views.push_back(new View(
-            frames[n], 
-            K, 
-            cameras[n].R, 
-            S));
+        //Add view
+        views.push_back(View(frames[n], cameras[n].R, K * P));
             
-         /*   
+        /*
         //Check point images
         for(int i=0; i<point_images.size(); i++)
         for(int j=0; j<point_images[i].size(); j++)
@@ -322,31 +236,25 @@ vector<View*> convertBundlerData(
 }
 
 
-//Loads up a view from file
-vector<View*> loadVideo(const char * filename, ivec3 grid_dim, vec3& box_min, vec3& box_max)
+
+//Runs bundler to solve structure from motion on an unordered collection
+//of images
+vector<View>  bundlerSfM(
+    vector<Image> frames, 
+    const string& bundler_path)
 {
-    //Separate fames
-    vector<IplImage*> frames = splitVideo(filename);
-    
-    //Run bundler on frames to obtain matrices & camera parameters
-    vector<BundlerCamera> cameras = runBundler(frames, box_min, box_max);
-    
-    //Convert data to internal view data structure
-    return convertBundlerData(frames, cameras, grid_dim, box_min, box_max);
+    return convertBundlerData(
+        frames, 
+        runBundler(frames, bundler_path));
 }
 
-
 //Loads the intermediate bundler data from temporary storage
-//Needed for testing
-vector<View*> loadTempBundleData(
-    const char* directory, 
-    ivec3 grid_dim, 
-    vec3& box_min, 
-    vec3& box_max)
+//Used for debugging
+vector<View> parseBundlerTemps(const std::string& directory)
 {
-    //Load up images from parsed list file
+    //Use image paths from bundler's list.txt file
     ifstream fin((string(directory) + "/list.txt").c_str());
-    vector<IplImage*> frames;
+    vector<Image> frames;
     
     while(true)
     {
@@ -354,7 +262,7 @@ vector<View*> loadTempBundleData(
         if(!(fin >> name))
             break;
         
-        //Trim off prefix directory
+        //Trim prefix directory
         for(int k=name.size()-1; k>=0; k--)
         {
             if(name[k] == '/')
@@ -367,20 +275,10 @@ vector<View*> loadTempBundleData(
         
         cout << "Loading image " << name << endl;
         
-        IplImage * img = cvLoadImage(name.c_str());
-        cout << img->height << " " << img->width << " " << img->imageData[0] << endl;
-
-        frames.push_back(img);
+        frames.push_back(Image(name));
     }
     
-    //Load up the cameras
-    vector<BundlerCamera> cameras = readBundlerData(
-        (string(directory) + "/bundle/bundle.out").c_str(),
-        box_min, box_max);
-    
-    //Fix up bundler data
-    fixupBundlerData(frames, cameras);
-    
     //Convert data to internal format and return
-    return convertBundlerData(frames, cameras, grid_dim, box_min, box_max);
+    return convertBundlerData(frames, 
+        readBundlerData(directory + "/bundle/bundle.out"));
 }
