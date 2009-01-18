@@ -10,7 +10,6 @@
 #include <vector>
 
 //Project
-#include "misc.h"
 #include "volume.h"
 
 //TODO: Switch all instances of variables to Eigen style

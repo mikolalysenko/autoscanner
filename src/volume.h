@@ -5,6 +5,7 @@
 #include <string>
 
 #include "view.h"
+#include "geometry.h"
 
 #include <Eigen/Core>
 

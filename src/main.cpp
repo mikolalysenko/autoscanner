@@ -1,9 +1,3 @@
-/**
- * Multiview Stereo
- *
- * Author: Mikola Lysenko
- */
-
 //STL
 #include <vector>
 #include <fstream>
@@ -32,6 +26,9 @@ using namespace cfg;
 //Program start point
 int main(int argc, char** argv)
 {
+    
+#ifdef COMMENT_OUT
+    
     config::global.load("autoscanner.cfg");
 
     config::global.load(config::global.get<std::string>("config_file"));
@@ -116,7 +113,8 @@ int main(int argc, char** argv)
         views[i]->writeConsist(fname);
     }
 
-	
+#endif
+    
 	return 0;
 }
 

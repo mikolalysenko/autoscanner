@@ -1,3 +1,4 @@
+//stdlib includes
 #include <vector>
 #include <sstream>
 #include <iostream>
@@ -5,17 +6,15 @@
 #include <string>
 #include <cstdlib>
 
-#include "misc.h"
+//Eigen
+#include <Eigen/Core>
+
+//Project
+#include "image.h"
 #include "view.h"
 
+USING_PART_OF_NAME_SPEACE_EIGEN
 using namespace std;
-using namespace blitz;
-
-//Sample every X frames
-#define FRAMES_PER_SAMPLE       15
-
-//Path to bundler script
-const char* bundler_path = "/home/mikola/Projects/autoscanner/bundler/RunBundler.sh";
 
 
 //Debugging stuff, needed to check for camera parameter correctness
@@ -45,76 +44,6 @@ ostream& operator<<(ostream& os,  const BundlerCamera& cam)
         << ", k2=" << cam.k2 
         << ", R=" << cam.R 
         << "}";
-}
-
-//Extract frames from video capture sequence
-//TODO: Need to implement a better criteria for this
-vector<IplImage*> splitVideo(const char * filename)
-{
-    cout << "Loading image " << filename << endl;
-    
-    //Run the capture process
-    CvCapture * capture = cvCaptureFromAVI(filename);
-    assert(capture);
-    
-    vector<IplImage*> frames;
-    
-    while(true)
-    {
-        //Skip a fixed number of frames
-        for(int i=0; i<FRAMES_PER_SAMPLE; i++)
-        {
-            if(!cvGrabFrame(capture))
-                return frames;
-        }
-        
-        //Retrieve the frame
-        IplImage *tmp = cvRetrieveFrame(capture), *img;
-        img = cvCreateImage(cvSize(tmp->width, tmp->height), IPL_DEPTH_8U, 3);
-        cvCopyImage(tmp, img);
-        
-        //Add to frame set
-        frames.push_back(img);
-    }
-    
-    cvReleaseCapture(&capture);
-}
-
-//Compute a bounding box from the filtered point data
-void findBox(
-    vector<vec3> points,
-    vec3& box_min,
-    vec3& box_max)
-{
-    /*
-    box_min = +100.0f;
-    box_max = -100.0f;
-    
-    for(size_t i=0; i<points.size(); i++)
-    {
-        vec3 p = points[i];
-        
-        for(int j=0; j<3; j++)
-        {
-            box_min(j) = min(box_min(j), p(j));
-            box_max(j) = max(box_max(j), p(j));
-        }
-    }
-    */
-    
-    /*
-    box_min -= 0.1f;
-    box_max += 0.1f;
-    */
-    
-    /*
-    box_min -= 5;
-    box_max += 5;
-    */
-    /*
-    box_min = vec3(-1, -1, 2.4);
-    box_max = vec3(1, 1, 3.6);
-    */
 }
 
 //Reads in bundler data
