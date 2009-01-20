@@ -3,11 +3,6 @@
 using namespace std;
 using namespace boost;
 
-//Pixel ostream
-ostream& operator<<(ostream& os, const Pixel & pix)
-{
-    return os << "[r=" << pix.r << ",g=" << pix.g << ",b=" << pix.g << "]";
-}
 
 //Clean up for IplImages
 struct IplImageDestructor

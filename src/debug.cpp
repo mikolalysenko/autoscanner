@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <cassert>
+#include <cstdlib>
 
 #include <Eigen/Core>
 
@@ -16,7 +17,7 @@ using namespace Eigen;
 void savePLY(
     const string& filename, 
     const vector<Vector3d>& points, 
-    const vector<Vector3i>& color)
+    const vector<Color>& color)
 {
     assert(points.size() == color.size());
     
@@ -41,9 +42,9 @@ void savePLY(
         fout << (float)points[i](0) << " " 
              << (float)points[i](1) << " " 
              << (float)points[i](2) << " " 
-             << (ubyte)color[i](0)  << " " 
-             << (ubyte)color[i](1)  << " " 
-             << (ubyte)color[i](2)  << endl;
+             << color[i].b  << " " 
+             << color[i].g  << " " 
+             << color[i].r  << endl;
 
     fout.close();
 }
@@ -54,12 +55,12 @@ void saveCameraPLY(
     const vector<View>& views)
 {
     vector<Vector3d> points;
-    vector<Vector3i> colors;
+    vector<Color> colors;
     
     for(size_t i=0; i<views.size(); i++)
     {
         points.push_back(views[i].center());
-        colors.push_back(Vector3i(rand()%255, rand()%255, rand()%255));
+        colors.push_back(Color(rand()%255, rand()%255, rand()%255));
     }
     
     savePLY(filename, points, colors);
