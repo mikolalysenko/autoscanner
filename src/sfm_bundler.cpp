@@ -12,6 +12,7 @@
 //Project
 #include "image.h"
 #include "view.h"
+#include "system.h"
 
 using namespace std;
 using namespace Eigen;
@@ -19,8 +20,10 @@ using namespace Eigen;
 //Debugging stuff, needed to check for camera parameter correctness
 struct PointImage
 {
-    int camera, key;
     Vector2d loc;
+    int camera, key;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 //Camera produced by bundler
@@ -28,12 +31,14 @@ struct BundlerCamera
 {
     Matrix4d R;
     double f, k1, k2;
+    
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 
 //Debugging data, used for double checking computed matrix
-vector< Vector3f >              points;
-vector< vector< PointImage > >  point_images;
+vector< Vector3f >               points;
+vector< vector< PointImage* > >  point_images;
 
 //Used for debugging
 ostream& operator<<(ostream& os,  const BundlerCamera& cam)
@@ -47,7 +52,7 @@ ostream& operator<<(ostream& os,  const BundlerCamera& cam)
 }
 
 //Reads in bundler data
-vector<BundlerCamera> readBundlerData(const string& filename)
+vector<BundlerCamera*> readBundlerData(const string& filename)
 {
     cout << "Reading in bundler data:" << filename << endl;
     
@@ -68,32 +73,32 @@ vector<BundlerCamera> readBundlerData(const string& filename)
          << ", Num points = " << n_points << endl;
     
     //Parse out cameras first
-    vector<BundlerCamera> result;
+    vector<BundlerCamera*> result;
     
     for(int k=0; k<n_cameras; k++)
     {
         assert(!fin.fail());
         
-        BundlerCamera cam;
-        fin >> cam.f >> cam.k1 >> cam.k2;
+        BundlerCamera* cam = new BundlerCamera();
+        fin >> cam->f >> cam->k1 >> cam->k2;
         
         //Reset matrix
-        cam.R.setZero();
+        cam->R.setZero();
         
         for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
         {
-            fin >> cam.R(i,j);
+            fin >> cam->R(i,j);
         }
         
         for(int i=0; i<3; i++)
         {
-            fin >> cam.R(i,3);
+            fin >> cam->R(i,3);
         }
         
-        cam.R(3,3) = 1.0;
+        cam->R(3,3) = 1.0;
         
-        cout << "Camera " << k << " = " << cam << endl;
+        cout << "Camera " << k << " = " << *cam << endl;
         result.push_back(cam);
     }
         
@@ -117,11 +122,11 @@ vector<BundlerCamera> readBundlerData(const string& filename)
         int n_views;
         fin >> n_views;
         
-        vector<PointImage> p_images;
+        vector<PointImage*> p_images;
         for(int j=0; j<n_views; j++)
         {
-            PointImage pi;
-            fin >> pi.camera >> pi.key >> pi.loc.x() >> pi.loc.y();
+            PointImage* pi = new PointImage();
+            fin >> pi->camera >> pi->key >> pi->loc.x() >> pi->loc.y();
             p_images.push_back(pi);
         }
         points.push_back(p);
@@ -133,12 +138,12 @@ vector<BundlerCamera> readBundlerData(const string& filename)
 }
 
 //Calls bundler script
-vector<BundlerCamera> runBundler(
+vector<BundlerCamera*> runBundler(
     vector<Image> frames, 
     const string& bundler_path)
 {
     //Create temp directory
-    string temp_directory = string(getTempDirectory()) + "/bundler";
+    string temp_directory = getTempDirectory() + "/bundler";
     system((string("rm -rf ") + temp_directory).c_str());
     system((string("mkdir ") + temp_directory).c_str());
     
@@ -161,7 +166,7 @@ vector<BundlerCamera> runBundler(
     system(bundler_command.c_str());
     
     //Read in data from bundler
-    vector<BundlerCamera> result = 
+    vector<BundlerCamera*> result = 
         readBundlerData(temp_directory + "/bundle/bundle.out");
     
     //Return to base directory
@@ -175,7 +180,7 @@ vector<BundlerCamera> runBundler(
 //Converts bundler formatted data + pictures to camera data
 vector<View> convertBundlerData(
     vector<Image> frames,
-    vector<BundlerCamera> cameras)
+    vector<BundlerCamera*> cameras)
 {
     //Unwarp images & build views
     vector<View> views;
@@ -186,14 +191,14 @@ vector<View> convertBundlerData(
         
         
         //Check for singular rotation matrix
-        float d = cameras[n].R.determinant();
+        float d = cameras[n]->R.determinant();
         
         //Check for singular camera matrix (obviously bad)
         if(abs(d) <= 1e-10f)
         {
             cout << "Singular matrix for camera " << n
                  << ", D = " << d << endl
-                 << "cam = " << cameras[n] << endl;
+                 << "cam = " << *(cameras[n]) << endl;
             
             continue;
         }
@@ -207,13 +212,13 @@ vector<View> convertBundlerData(
         K(0,3) = (double)frames[n].width()  / 2.0;
         K(1,3) = (double)frames[n].height() / 2.0;
         
-        P(0,0) = -cameras[n].f;
-        P(1,1) = -cameras[n].f;
+        P(0,0) = -cameras[n]->f;
+        P(1,1) = -cameras[n]->f;
         P(2,3) = 1.0f;
         P(3,2) = 1.0f;
         
         //Add view
-        views.push_back(View(frames[n], cameras[n].R, K * P));
+        views.push_back(View(frames[n], cameras[n]->R, K * P));
             
         /*
         //Check point images
@@ -231,6 +236,17 @@ vector<View> convertBundlerData(
         }
         */
     }
+    
+    //Release bundler cameras
+    for(size_t i=0; i<cameras.size(); i++)
+        delete cameras[i];
+    
+    //Release point data
+    assert(points.size() == point_images.size());
+    
+    for(size_t i=0; i<point_images.size(); i++)
+    for(size_t j=0; j<point_images[i].size(); j++)
+        delete point_images[i][j];
     
     return views;
 }
@@ -256,22 +272,28 @@ vector<View> parseBundlerTemps(const std::string& directory)
     ifstream fin((string(directory) + "/list.txt").c_str());
     vector<Image> frames;
     
+    
+    char buffer[1024];
     while(true)
     {
-        string name;
-        if(!(fin >> name))
+        if(!fin.getline(buffer, 1024))
             break;
         
-        //Trim prefix directory
-        for(int k=name.size()-1; k>=0; k--)
+        char * str = buffer;
+        
+        //Truncate to string between slash and space
+        for(char * ptr = buffer; *ptr; ptr++)
         {
-            if(name[k] == '/')
+            if(*ptr == '/')
+                str = ptr+1;
+            else if(*ptr == ' ')
             {
-                name.erase(0, k);
+                *ptr = 0;
                 break;
             }
         }
-        name = string(directory) + string("/") + name;
+        
+        string name = directory + "/" + str;
         
         cout << "Loading image " << name << endl;
         
