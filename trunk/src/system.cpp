@@ -1,10 +1,8 @@
 #include <iostream>
 #include <string>
-#include <fstream>
+#include <cstdlib>
 
-#include <Eigen/Core>
-
-USING_PART_OF_NAMESPACE_EIGEN
+#include "system.h"
 
 using namespace std;
 
@@ -20,3 +18,8 @@ string getTempDirectory()
     return "/tmp/";
 }
 
+//Pixel ostream
+ostream& operator<<(ostream& os, const Color & pix)
+{
+    return os << "[r=" << pix.r << ",g=" << pix.g << ",b=" << pix.g << "]";
+}

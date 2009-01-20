@@ -8,8 +8,9 @@
 
 #include <Eigen/Core>
 
-#include "view.h"
 #include "system.h"
+#include "view.h"
+#include "volume.h"
 
 //Saves a pile of views to an interchange format
 void saveTempViews(
@@ -24,7 +25,7 @@ std::vector<View> loadTempViews(const std::string& filename);
 void savePLY(
     const std::string& filename, 
     const std::vector<Eigen::Vector3d>& points, 
-    const std::vector<Eigen::Vector3i>& color);
+    const std::vector<Color>& color);
 
 
 //Save cameras to PLY
@@ -32,5 +33,9 @@ void saveCameraPLY(
     const std::string& filename, 
     const std::vector<View>& views);
 
+//Saves a volume
+void saveVolumePLY(
+    const std::string& filename,
+    const Volume& volume);
 
 #endif
