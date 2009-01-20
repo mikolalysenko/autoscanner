@@ -4,10 +4,11 @@
 #include <cassert>
 #include <string>
 
+#include <Eigen/Core>
+
 #include "view.h"
 #include "geometry.h"
 
-#include <Eigen/Core>
 
 //Voxel data structure
 struct Volume
