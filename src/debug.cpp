@@ -6,6 +6,9 @@
 #include <cstdlib>
 
 #include <Eigen/Core>
+#include <Eigen/Array>
+#include <Eigen/Geometry>
+#include <Eigen/LU>
 
 #include "debug.h"
 #include "system.h"
@@ -42,9 +45,9 @@ void savePLY(
         fout << (float)points[i](0) << " " 
              << (float)points[i](1) << " " 
              << (float)points[i](2) << " " 
-             << color[i].b  << " " 
-             << color[i].g  << " " 
-             << color[i].r  << endl;
+             << (int)color[i].b  << " " 
+             << (int)color[i].g  << " " 
+             << (int)color[i].r  << endl;
 
     fout.close();
 }
@@ -65,3 +68,27 @@ void saveCameraPLY(
     
     savePLY(filename, points, colors);
 }
+
+//Saves a volume
+void saveVolumePLY(
+    const std::string& filename,
+    const Volume& volume)
+{
+    vector<Vector3d>    points;
+    vector<Color>       colors;
+    
+    for(Vector3d p(0,0,0); p.z()<volume.size().z(); p.z()++)
+    for(p.y()=0; p.y()<volume.size().y(); p.y()++)
+    for(p.x()=0; p.x()<volume.size().x(); p.x()++)
+    {
+        if(volume.surface(p))
+        {
+            points.push_back(Transform3d(volume.xform().inverse()) * p);
+            colors.push_back(volume(p));
+        }
+    }
+    
+    savePLY(filename, points, colors);
+}
+
+

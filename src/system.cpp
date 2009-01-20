@@ -21,5 +21,8 @@ string getTempDirectory()
 //Pixel ostream
 ostream& operator<<(ostream& os, const Color & pix)
 {
-    return os << "[r=" << pix.r << ",g=" << pix.g << ",b=" << pix.g << "]";
+    return os 
+        << "[r=" << (int)pix.r 
+        << ",g=" << (int)pix.g 
+        << ",b=" << (int)pix.b << "]";
 }

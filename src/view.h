@@ -6,8 +6,11 @@
 #include <vector>
 #include <string>
 
+#include <boost/shared_ptr.hpp>
+
 //Eigen
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 //Project files
 #include "image.h"
@@ -37,11 +40,11 @@ struct View
     }
     
     //Matrix accessors
-    Eigen::Vector3d center() const      { return R->block(0,3,3,1); }
-    Eigen::Matrix4d rotation() const    { return R->block(0,3,0,3); }
-    Eigen::Matrix4d intrinsic() const   { return *K; }
-    Eigen::Matrix4d world() const       { return *R; }
-    Eigen::Matrix4d camera() const      { return (*K) * (*R); }
+    Eigen::Vector3d center() const          { return R->block(0,3,3,1); }
+    Eigen::Matrix3d rotation() const        { return R->block(0,3,0,3); }
+    Eigen::Transform3d intrinsic() const    { return Eigen::Transform3d(*K); }
+    Eigen::Transform3d camera() const       { return Eigen::Transform3d((*K) * (*R)); }
+    Eigen::Transform3d world() const        { return Eigen::Transform3d(*R); }
     
     //Image accessor
     Image image() const                 { return img; }
@@ -51,10 +54,10 @@ private:
     Image img;
     
     //World matrix (stores position/rotation)
-    Eigen::Matrix4d *R ALIGN16;
+    boost::shared_ptr<Eigen::Matrix4d> R;
     
     //Intrinsic matrix (stores focal length, local image trnasform)
-    Eigen::Matrix4d *K ALIGN16;
+    boost::shared_ptr<Eigen::Matrix4d> K;
 };
 
 

@@ -10,6 +10,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Array>
+#include <Eigen/Geometry>
 
 #include "system.h"
 
@@ -27,10 +28,10 @@ struct Volume
     Volume(
         const Eigen::Vector3i& dimensions,
         std::vector<Color> data,
-        const Eigen::Matrix4d& transform) :
+        const Eigen::Transform3d& transform) :
             xRes(dimensions.x()), yRes(dimensions.y()), zRes(dimensions.z()),
             colors(data),
-            mat(new Eigen::Matrix4d(transform)) {}
+            mat(new Eigen::Transform3d(transform)) {}
     
     //Default volume constructor
     Volume(Eigen::Vector3i dimensions,
@@ -41,12 +42,13 @@ struct Volume
         zRes(dimensions.z()),
         colors(dimensions.x() * dimensions.y() * dimensions.z())
     {
+        //Construct transform matrix
         Eigen::Matrix4d m = Eigen::Matrix4d::Zero();
-        m.block(0,3,0,3) += (Eigen::Vector3d(dimensions).cwise() / 
+        m.block(0,3,0,3) = (Eigen::Vector3d(dimensions).cwise() / 
             (high_bound - low_bound)).asDiagonal();
-        m.block(0,3,3,1) += low_bound;
+        m.block(0,3,3,1) = low_bound;
         m(3,3) = 1;
-        mat = boost::shared_ptr<Eigen::Matrix4d>(new Eigen::Matrix4d(m));
+        mat = boost::shared_ptr<Eigen::Transform3d>(new Eigen::Transform3d(m));
         
         fill(Color(255, 255, 255));
     }
@@ -83,8 +85,9 @@ struct Volume
     }
     Color operator()(const Eigen::Vector3i& v) const
     {
-        assert((size_t)v.x() < xRes && (size_t)v.y() < yRes && (size_t)v.z() < zRes);
-        return colors[v.x() + xRes * (v.y() + yRes * v.z())];
+        if((size_t)v.x() < xRes && (size_t)v.y() < yRes && (size_t)v.z() < zRes)
+            return colors[v.x() + xRes * (v.y() + yRes * v.z())];
+        return Color(0,0,0);
     }
     
     //Point membership classification
@@ -109,12 +112,12 @@ struct Volume
     }
     
     //Matrix coordinates
-    Eigen::Matrix4d  xform() const { return *mat; }
-    Eigen::Matrix4d& xform()
+    Eigen::Transform3d  xform() const { return *mat; }
+    Eigen::Transform3d& xform()
     {
         if(mat.unique())
             return *mat; 
-        return *(mat = boost::shared_ptr<Eigen::Matrix4d>(new Eigen::Matrix4d(*mat)));
+        return *(mat = boost::shared_ptr< Eigen::Transform3d >(new Eigen::Transform3d(*mat)));
     }
 
 private:
@@ -124,7 +127,7 @@ private:
     std::vector<Color> colors;
 
     //World -> volume coordinate transform
-    boost::shared_ptr<Eigen::Matrix4d> mat;
+    boost::shared_ptr< Eigen::Transform3d > mat;
 };
 
 #endif
