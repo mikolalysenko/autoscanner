@@ -9,7 +9,7 @@ USING_PART_OF_NAMESPACE_EIGEN
 using namespace std;
 
 //Locates the temp directory
-char * getTempDirectory()
+string getTempDirectory()
 {
     if(getenv("TMPDIR"))
         return getenv("TMPDIR");
