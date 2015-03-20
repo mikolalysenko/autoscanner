@@ -1,0 +1,1 @@
+Autoscanner reconstructs 3D information from an uncalibrated video stream. The primary goal is to be able to take a short video ( < 30sec) of a statue and recreate the 3d structure of it with no further input.
